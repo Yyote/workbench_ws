@@ -4,9 +4,6 @@
 [submodule "src/turtlebot3_msgs"]
 	path = src/turtlebot3_msgs
 	url = https://github.com/ROBOTIS-GIT/turtlebot3_msgs.git
-[submodule "src/turtlebot3_simulations"]
-	path = src/turtlebot3_simulations
-	url = https://github.com/ROBOTIS-GIT/turtlebot3_simulations.git
 [submodule "gazebo_ros_pkgs"]
 	path = gazebo_ros_pkgs
 	url = https://github.com/ros-simulation/gazebo_ros_pkgs
@@ -16,3 +13,6 @@
 [submodule "src/rplidar_ros"]
 	path = src/rplidar_ros
 	url = https://github.com/robopeak/rplidar_ros.git
+[submodule "src/turtlebot3_simulations"]
+	path = src/turtlebot3_simulations
+	url = https://github.com/ROBOTIS-GIT/turtlebot3_simulations.git
