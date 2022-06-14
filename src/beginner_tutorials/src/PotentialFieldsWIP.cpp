@@ -15,10 +15,10 @@
 #include <cmath>
 
 // PRESETUP 
-bool publish_rviz_vizualization = 0;
+bool publish_rviz_vizualization = 1;
 int sessionID = 0;
 int okcheck = 1;
-float maxRange = 1.2;
+float maxRange = 0.75; //max range to calculate
 
 // SUB catchPC creation
 ros::Subscriber catchPC_sub;
@@ -173,7 +173,7 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
 
     // CODEINFO angle calculation to pass to rviz markers ---> calculate current(i) vector's angle 
     //IDEA replace angles object with angles array to store angle for each vector
-    angles.yaw = atan(finvec_y / finvec_x); //IDEA claculate angle one time for the resulting vector
+    angles.yaw = atan(-finvec_y / finvec_x); //SOLVED claculate angle one time for the resulting vector
     q.setRPY(angles.roll, angles.pitch, angles.yaw);
     q = q.normalize(); //BUG something is going with angle. cant say what, maybe its not a bug
 
