@@ -242,6 +242,6 @@ add_executable(PotentialFieldsWIP src/PotentialFieldsWIP.cpp)
 target_link_libraries(PotentialFieldsWIP ${catkin_LIBRARIES})
 add_dependencies(PotentialFieldsWIP beginner_tutorials_generate_messages_cpp)
 
-# add_executable(PotentialFields src/PotentialFields.cpp)
-# target_link_libraries(PotentialFields ${catkin_LIBRARIES})
-# add_dependencies(PotentialFields beginner_tutorials_generate_messages_cpp)
+catkin_install_python(PROGRAMS scripts/Node1.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)

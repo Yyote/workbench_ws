@@ -26,7 +26,8 @@ ros::Subscriber catchPC_sub;
 ros::Publisher vis_pub;
 ros::Publisher speed_pub;
 
-struct EulerAngles {
+class EulerAngles {
+    public:
     float roll;
     float pitch;
     float yaw;
@@ -34,14 +35,6 @@ struct EulerAngles {
 
 double C = 0.0005;
 
-// class DecartCoords {
-//     public:
-//     double x;
-//     double y;
-//     double z;
-
-//     private: 
-// };
 
 int shutdown()
 {
@@ -70,8 +63,7 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
     // PROBLEM 2
     // For an average vector change in 1-20 points is very little. That is a problem when the robot gets close to objects as speed vector is changing too little
     int sumcount = 0;
-    sensor_msgs::PointCloud potfield;
-    potfield.points.resize(catchedCloud->points.capacity());
+    // potfield.points.resize(catchedCloud->points.capacity()); //DEL
 
     double finvec_x = 0;
     double finvec_y = 0;
@@ -79,60 +71,31 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
     //DEBUG
     // ROS_INFO_STREAM("catchedCloud capacity is ---> " << catchedCloud->points.capacity());
 
-
-    //IDEA visualise potential field via PointCloud(described in Obsidian)
-    // sensor_msgs::PointCloud pfield;
-    // double resolution, width;
-    // width = 5;
-    // resolution = 0.5;
-    // int a = (int)width/resolution-1;
-    // DecartCoords pArr[a][a];
-
-    // double xmax, ymax, bufmax;
-    // xmax = width/2;
-    // ymax = xmax;
-    // bufmax = xmax;
-
-    // for(int line = 0; ymax != -bufmax; line++)
-    // {
-    //     for(int row = 0; xmax != -bufmax; row++)
-    //     {
-    //         pArr[line][row].x = xmax; //x is equivalent to row
-    //         pArr[line][row].y = ymax; //y is equivalent to line
-    //         xmax -= resolution
-    //     }
-    //     ymax -= resolution
-    // }
-
-
     for(int i = 0; i < catchedCloud->points.capacity(); i++) //SOLVED getting out of range ---> you should be more careful when working with cycle's iterator incrementation
     {
         if(okcheck == 1)
-        // double x, y;
-        // x = catchedCloud->points.at(i).x;
-        // y = catchedCloud->points.at(i).y;
 
         {
             if(sqrt(pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2)) >= maxRange || sqrt(pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2)) <= 0.05 || catchedCloud->points.at(i).x < 0.001 || catchedCloud->points.at(i).y < 0.001) //LOG NEW changed sqrt from 0.2 to 0.05
             {
-                potfield.points.at(i).x = 0;
-                potfield.points.at(i).y = 0;
+                finvec_x += 0;
+                finvec_y += 0;
             }
             
 
             else 
             {
-                potfield.points.at(i).x = (C / (catchedCloud->points.at(i).x * catchedCloud->points.at(i).x)); //LOG NEW removed sqrt
-                potfield.points.at(i).y = (C / (catchedCloud->points.at(i).y * catchedCloud->points.at(i).y));
+                finvec_y += (C / catchedCloud->points.at(i).y);
+                finvec_x += (C / catchedCloud->points.at(i).x); //LOG NEW removed sqrt
 
-                if(potfield.points.at(i).x > maxRange)
+                if(finvec_x > maxRange)
                 {
-                    potfield.points.at(i).x = maxRange;
+                    finvec_x += maxRange;
                 }
 
-                else if (potfield.points.at(i).y > maxRange)
+                if (finvec_y > maxRange)
                 {
-                    potfield.points.at(i).y = maxRange;
+                    finvec_y += maxRange;
                 }
 
                 sumcount += 1;
@@ -140,12 +103,14 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
 
             double bufx, bufy; //DEBUG
             bufx = finvec_x;
-            bufy = finvec_y;
-            finvec_x += -potfield.points.at(i).x;
-            finvec_y += -potfield.points.at(i).y;           
+            bufy = finvec_y;          
 
             // DEBUG
-            ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl << "FUNCTION NAME: average coordinates calculation" << std::endl << "VARIABLES: list of vars" << "\ncloud capacity, vel_cloud points x and y, vector length, i, sumcount:" << std::endl << catchedCloud->points.capacity() << " "  << potfield.points.at(i).x << " " << potfield.points.at(i).y << " " << sqrt(pow(potfield.points.at(i).x, 2) + pow(potfield.points.at(i).y, 2)) << " " << i << " " << sumcount << std::endl << "finvec_x -->" << finvec_x << std::endl << "finvec_y -->" << finvec_y << std::endl << "catchedCloud->points.at(i).x --> " <<  std::endl << catchedCloud->points.at(i).x << "catchedCloud->points.at(i).y --> " << catchedCloud->points.at(i).y << std::endl <<"_________________________________" << std::endl << "_________________________________" << std::endl);
+            ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl << "FUNCTION NAME: average coordinates calculation" << std::endl 
+            << "VARIABLES: list of vars" << "\ncloud capacity, finvec_x and y, vector length, i, sumcount:" << std::endl 
+            << catchedCloud->points.capacity() << " "  << finvec_x << " " << finvec_y << " " << sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)) << " " << i << " " << sumcount << std::endl 
+            << "catchedCloud->points.at(i).x --> " <<  std::endl << catchedCloud->points.at(i).x << "catchedCloud->points.at(i).y --> " << catchedCloud->points.at(i).y << std::endl 
+            <<"_________________________________" << std::endl << "_________________________________" << std::endl);
 
             // DEBUG
             if (finvec_x == finvec_y && finvec_x != 0)
@@ -166,10 +131,6 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
 
 
     //IDEA make a bullshit filter for potential fields and create max passed speed constant
-
-    // // AAA Here I dump distance data from my msg into an PC to be able to visualize published data //RETHINK the idea of visualizng point cloud as speeds
-    //         PointCloud_velocity_points.points.at(i).x = velocities.velocityModule.points.at(i).x; //IDEA visualize the points' speeds as PointCloud and the final vector as marker
-    //         PointCloud_velocity_points.points.at(i).y = velocities.velocityModule.points.at(i).y;
 
     // CODEINFO angle calculation to pass to rviz markers ---> calculate current(i) vector's angle 
     //IDEA replace angles object with angles array to store angle for each vector
@@ -192,7 +153,7 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
     //------------------------------------------------------------------------------
     // LOG NEW removed marker initalization to change to markerarray
     marker.header.stamp = ros::Time::now();
-    marker.header.frame_id = "laser"; //FRAME
+    marker.header.frame_id = "map"; //FRAME
     marker.ns = "speeds_namespace";
     marker.id = sessionID;
     marker.type = visualization_msgs::Marker::ARROW;
@@ -202,7 +163,7 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
     marker.pose.position.z = 0.0;
     marker.pose.orientation.x = q.x();
     marker.pose.orientation.y = q.y();
-    marker.pose.orientation.z = q.z(); //SOLVED can't make the vector turn ---> check function, everything should work if done properly  //TODO: put a ROS_INFO and a ROS_WARN on marker.scale.x
+    marker.pose.orientation.z = q.z();
     marker.pose.orientation.w = q.w();
     marker.scale.x = sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)); //TODO: change calculations for vector average //IDEA calculate average x and y and use them to calculate speed
     marker.scale.y = 0.05;
