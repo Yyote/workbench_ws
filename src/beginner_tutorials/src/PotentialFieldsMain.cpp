@@ -16,9 +16,8 @@
 
 // PRESETUP 
 bool publish_rviz_vizualization = 1;
-int sessionID = 0;
 int okcheck = 1;
-float maxRange = 0.75; //max range to calculate
+float maxRange = 1; //max range to calculate
 
 // SUB catchPC creation
 ros::Subscriber catchPC_sub;
@@ -33,7 +32,7 @@ class EulerAngles {
     float yaw;
 };
 
-double C = 0.0005;
+double C = 0.01;
 
 
 int shutdown()
@@ -55,47 +54,42 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
         angles.yaw = 0;
 
     visualization_msgs::Marker marker; // RVIZ marker init
+    visualization_msgs::Marker marker2; // RVIZ marker init
+
 
     // CODEINFO
     // Calculate average x and y and make a vector of retraction from them
-    // PROBLEM 1
-    // Algorithms calculates retraction for all points - this makes problems when some points get out of sight
-    // PROBLEM 2
-    // For an average vector change in 1-20 points is very little. That is a problem when the robot gets close to objects as speed vector is changing too little
     int sumcount = 0;
-    // potfield.points.resize(catchedCloud->points.capacity()); //DEL
 
     double finvec_x = 0;
     double finvec_y = 0;
 
-    //DEBUG
-    // ROS_INFO_STREAM("catchedCloud capacity is ---> " << catchedCloud->points.capacity());
 
-    for(int i = 0; i < catchedCloud->points.capacity(); i++) //SOLVED getting out of range ---> you should be more careful when working with cycle's iterator incrementation
+    for(int i = 0; i < catchedCloud->points.capacity(); i++)
     {
-        if(okcheck == 1)
-
+        if(i % 3 == 0)
         {
-            if(sqrt(pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2)) >= maxRange || sqrt(pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2)) <= 0.05 || catchedCloud->points.at(i).x < 0.001 || catchedCloud->points.at(i).y < 0.001) //LOG NEW changed sqrt from 0.2 to 0.05
+            if(!(sqrt(pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2)) >= maxRange || sqrt(pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2)) <= 0.05 || catchedCloud->points.at(i).x < 0.001 && catchedCloud->points.at(i).x > -0.001 || catchedCloud->points.at(i).y < 0.001 && catchedCloud->points.at(i).y > -0.001))  
             {
-                finvec_x += 0;
-                finvec_y += 0;
-            }
-            
+                finvec_y -= C * catchedCloud->points.at(i).y / ((-1 + ((!catchedCloud->points.at(i).y < 0)*2)) * (catchedCloud->points.at(i).y) * (catchedCloud->points.at(i).y)); // ((-1 + ((!catchedCloud->points.at(i).y < 0)*2)) * 
+                finvec_x -= C * catchedCloud->points.at(i).x / ((-1 + ((!catchedCloud->points.at(i).x < 0)*2)) * (catchedCloud->points.at(i).x) * (catchedCloud->points.at(i).x)); // ((-1 + ((!catchedCloud->points.at(i).x < 0)*2)) * 
 
-            else 
-            {
-                finvec_y += (C / catchedCloud->points.at(i).y);
-                finvec_x += (C / catchedCloud->points.at(i).x); //LOG NEW removed sqrt
-
-                if(finvec_x > maxRange)
+                if(finvec_x > sqrt(maxRange)) //LOG NEW changed maxRange to sqrt(maxRange)
                 {
-                    finvec_x += maxRange;
+                    finvec_x -= sqrt(maxRange);
+                }
+                else if(finvec_x < -sqrt(maxRange))
+                {
+                    finvec_x -= -sqrt(maxRange);
                 }
 
-                if (finvec_y > maxRange)
+                if (finvec_y > sqrt(maxRange))
                 {
-                    finvec_y += maxRange;
+                    finvec_y -= sqrt(maxRange);
+                }
+                else if(finvec_y < -sqrt(maxRange))
+                {
+                    finvec_y -= -sqrt(maxRange);
                 }
 
                 sumcount += 1;
@@ -105,14 +99,17 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
             bufx = finvec_x;
             bufy = finvec_y;          
 
-            // DEBUG
-            ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl << "FUNCTION NAME: average coordinates calculation" << std::endl 
-            << "VARIABLES: list of vars" << "\ncloud capacity, finvec_x and y, vector length, i, sumcount:" << std::endl 
-            << catchedCloud->points.capacity() << " "  << finvec_x << " " << finvec_y << " " << sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)) << " " << i << " " << sumcount << std::endl 
-            << "catchedCloud->points.at(i).x --> " <<  std::endl << catchedCloud->points.at(i).x << "catchedCloud->points.at(i).y --> " << catchedCloud->points.at(i).y << std::endl 
-            <<"_________________________________" << std::endl << "_________________________________" << std::endl);
+            // DEBUG rinfo
+            if(1)
+            {
+                ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl << "FUNCTION NAME: average coordinates calculation" << std::endl 
+                << "VARIABLES: list of vars" << "\ncloud capacity, finvec_x and y, vector length, i, sumcount:" << std::endl 
+                << catchedCloud->points.capacity() << " "  << finvec_x << " " << finvec_y << " " << sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)) << " " << i << " " << sumcount << std::endl 
+                << "catchedCloud->points.at(i).x --> " <<  std::endl << catchedCloud->points.at(i).x << "catchedCloud->points.at(i).y --> " << catchedCloud->points.at(i).y << std::endl 
+                <<"_________________________________" << std::endl << "_________________________________" << std::endl);
+            }
 
-            // DEBUG
+            // DEBUG rinfo
             if (finvec_x == finvec_y && finvec_x != 0)
             {
                 ROS_ERROR_STREAM("FINVECX IS EQ TO FINVECY. terminated.");
@@ -133,29 +130,29 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
     //IDEA make a bullshit filter for potential fields and create max passed speed constant
 
     // CODEINFO angle calculation to pass to rviz markers ---> calculate current(i) vector's angle 
-    //IDEA replace angles object with angles array to store angle for each vector
-    angles.yaw = atan(-finvec_y / finvec_x); //SOLVED claculate angle one time for the resulting vector
+    angles.yaw = atan(finvec_y/finvec_x);
     q.setRPY(angles.roll, angles.pitch, angles.yaw);
-    q = q.normalize(); //BUG something is going with angle. cant say what, maybe its not a bug
+    q = q.normalize(); //SOLVED something is going with angle. cant say what, maybe its not a bug ---> in velocity calculation there was an if statement that tried to pass only > 0.001 coordiantes. It totally deleted all negative values from coordinates
 
 
-    // DEBUG
-    ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
-    << "FUNCTION NAME: angle calc" << std::endl 
-    << "VARIABLES: " << std::endl 
-    << "angles.yaw (atan)-->" << angles.yaw << std::endl << "finvec_y/finvec_x --> " << finvec_y/finvec_x << std::endl << "finvec_y --> " << finvec_y << std::endl << "finvec_x --> " << finvec_x << std::endl << std::endl 
-    << "_________________________________" << std::endl << "_________________________________" << std::endl);
-
+    // DEBUG rinfo
+    if(0)
+    {
+        ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
+        << "FUNCTION NAME: angle calc" << std::endl 
+        << "VARIABLES: " << std::endl 
+        << "angles.yaw (atan)-->" << angles.yaw << std::endl << "finvec_y/finvec_x --> " << finvec_y/finvec_x << std::endl << "finvec_y --> " << finvec_y << std::endl << "finvec_x --> " << finvec_x << std::endl << std::endl 
+        << "_________________________________" << std::endl << "_________________________________" << std::endl);
+    }
 
     //*-*-*-*-*-*-*-*--*-*-*-*-*--*--*-*-*-*-*-*-*--*--*-*-*-*-*-*-*-*-*-*-*--*-*-*-*
     //------------------------------------------------------------------------------
     // VISUALIZATION //RVIZ visualiztion code // TODO make it a func
     //------------------------------------------------------------------------------
-    // LOG NEW removed marker initalization to change to markerarray
     marker.header.stamp = ros::Time::now();
-    marker.header.frame_id = "map"; //FRAME
+    marker.header.frame_id = "laser"; //FRAME
     marker.ns = "speeds_namespace";
-    marker.id = sessionID;
+    marker.id = 1;
     marker.type = visualization_msgs::Marker::ARROW;
     marker.action = visualization_msgs::Marker::ADD;
     marker.pose.position.x = 0.0;
@@ -165,10 +162,10 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
     marker.pose.orientation.y = q.y();
     marker.pose.orientation.z = q.z();
     marker.pose.orientation.w = q.w();
-    marker.scale.x = sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)); //TODO: change calculations for vector average //IDEA calculate average x and y and use them to calculate speed
+    marker.scale.x = sqrt(pow(finvec_x, 2) + pow(finvec_y, 2));
     marker.scale.y = 0.05;
     marker.scale.z = 0.05;
-    marker.color.a = 1.0; // Don't forget to set the alpha!
+    marker.color.a = 1.0;
     marker.color.r = 1.0;
     marker.color.g = 0.0;
     marker.color.b = 0.0;
@@ -177,29 +174,61 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
     {
         vis_pub.publish(marker); // PUB //RVIZ publish
     }
+
+        marker.header.stamp = ros::Time::now();
+    marker2.header.frame_id = "laser"; //FRAME
+    marker2.ns = "speeds_namespace";
+    marker2.id = 2;
+    marker2.type = visualization_msgs::Marker::CYLINDER;
+    marker2.action = visualization_msgs::Marker::ADD;
+    marker2.pose.position.x = 0.0;
+    marker2.pose.position.y = 0.0;
+    marker2.pose.position.z = -0.05;
+    marker2.pose.orientation.x = q.x();
+    marker2.pose.orientation.y = q.y();
+    marker2.pose.orientation.z = q.z();
+    marker2.pose.orientation.w = q.w();
+    marker2.scale.x = sqrt(maxRange);
+    marker2.scale.y = sqrt(maxRange);
+    marker2.scale.z = 0.05;
+    marker2.color.a = 0.3;
+    marker2.color.r = 0.0;
+    marker2.color.g = 0.0;
+    marker2.color.b = 1.0;
+
+    if(publish_rviz_vizualization == 1)
+    {
+        vis_pub.publish(marker2); // PUB //RVIZ publish
+    }
     //*-*-*-*-*-*-*-*--*-*-*-*-*--*--*-*-*-*-*-*-*--*--*-*-*-*-*-*-*-*-*-*-*--*-*-*-*
 
 
     //CODEINFO Twist init and pub
     geometry_msgs::Twist twist;
-    if(abs(angles.yaw - 1.57) < 0.05)
+    if(abs(angles.yaw) - 0.2 < 0)
     {
         twist.angular.z = 0;
-        if(sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)) < 0.05)
+        if(sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)) < 0.001)
         {
             twist.linear.x = 0;
             twist.linear.y = 0;
+            ROS_ERROR_STREAM(std::endl << "Speed vector is too small" << std::endl);
         }
         else 
         {
             twist.linear.x = finvec_x;
             twist.linear.y = finvec_y;
-
         }
     }
-    else
+    else if (angles.yaw > 0 && angles.yaw < 3.14 / 2)
     {
+        ROS_ERROR_STREAM(std::endl << "Angle is correlating badly" << std::endl << "tan --> " << finvec_y/finvec_x << std::endl << "yaw --> " << angles.yaw * 180 / 3.14 << " degrees." << std::endl);
         twist.angular.z = 0.4;
+    }
+        else if (angles.yaw < 0 && angles.yaw > - 3.14 / 2)
+    {
+        ROS_ERROR_STREAM(std::endl << "Angle is correlating badly" << std::endl << "tan --> " << finvec_y/finvec_x << std::endl << "yaw --> " << angles.yaw * 180 / 3.14 << " degrees." << std::endl);
+        twist.angular.z = -0.4;
     }
     
     speed_pub.publish(twist);

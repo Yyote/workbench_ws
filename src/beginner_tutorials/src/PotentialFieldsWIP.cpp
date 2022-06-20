@@ -16,9 +16,9 @@
 
 // PRESETUP 
 bool publish_rviz_vizualization = 1;
-int sessionID = 0;
 int okcheck = 1;
-float maxRange = 0.6; //max range to calculate
+float maxRange = 1; //max range to calculate
+float minRange = 0.2; //min range to calculate
 
 // SUB catchPC creation
 ros::Subscriber catchPC_sub;
@@ -33,7 +33,7 @@ class EulerAngles {
     float yaw;
 };
 
-double C = 0.001;
+double C = 0.01;
 
 
 int shutdown()
@@ -55,6 +55,8 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
         angles.yaw = 0;
 
     visualization_msgs::Marker marker; // RVIZ marker init
+    visualization_msgs::Marker marker2; // RVIZ marker init
+
 
     // CODEINFO
     // Calculate average x and y and make a vector of retraction from them
@@ -68,27 +70,30 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
     {
         if(i % 3 == 0)
         {
-            if(!(sqrt(pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2)) >= maxRange || sqrt(pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2)) <= 0.05 || catchedCloud->points.at(i).x < 0.001 && catchedCloud->points.at(i).x > -0.001 || catchedCloud->points.at(i).y < 0.001 && catchedCloud->points.at(i).y > -0.001))  
+            if(!(sqrt(pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2)) >= maxRange || /*sqrt(pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2)) <= 0.05 ||*/ catchedCloud->points.at(i).x < sqrt(minRange * minRange / 2) && catchedCloud->points.at(i).x > -sqrt(minRange * minRange / 2) || catchedCloud->points.at(i).y < sqrt(minRange * minRange / 2) && catchedCloud->points.at(i).y > -sqrt(minRange * minRange / 2)))  
             {
-                finvec_y -= C * catchedCloud->points.at(i).y / ((-1 + ((!catchedCloud->points.at(i).y < 0)*2)) * (catchedCloud->points.at(i).y) * (catchedCloud->points.at(i).y));
-                finvec_x -= C * catchedCloud->points.at(i).x / ((-1 + ((!catchedCloud->points.at(i).x < 0)*2)) * (catchedCloud->points.at(i).x) * (catchedCloud->points.at(i).x));
+                //DEBUG rinfo
+                //****************************************************************************************************
+                if(1)
+                {
+                    ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
+                    << "FUNCTION NAME: zero fight" << std::endl 
+                    << "VARIABLES: "
+                    << "vector length -->"  << sqrt(pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2)) << std::endl
+                    << "maxRange -->"  << maxRange << std::endl 
+                    << "_________________________________" << std::endl << "_________________________________" << std::endl);
+                }
+                //****************************************************************************************************
 
-                if(finvec_x > sqrt(maxRange)) //LOG NEW changed maxRange to sqrt(maxRange)
+                if(sqrt(pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2)) <= maxRange)
                 {
-                    finvec_x -= sqrt(maxRange);
+                    finvec_y += 0.5 * C * ((1 / catchedCloud->points.at(i).y) - (1 / sqrt(maxRange * maxRange / 2)));
+                    finvec_x += 0.5 * C * ((1 / catchedCloud->points.at(i).x) - (1 / sqrt(maxRange * maxRange / 2)));
                 }
-                else if(finvec_x < -sqrt(maxRange))
+                else
                 {
-                    finvec_x -= -sqrt(maxRange);
-                }
-
-                if (finvec_y > sqrt(maxRange))
-                {
-                    finvec_y -= sqrt(maxRange);
-                }
-                else if(finvec_y < -sqrt(maxRange))
-                {
-                    finvec_y -= -sqrt(maxRange);
+                    finvec_x += 0;
+                    finvec_y += 0;
                 }
 
                 sumcount += 1;
@@ -98,14 +103,17 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
             bufx = finvec_x;
             bufy = finvec_y;          
 
-            // DEBUG
-            ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl << "FUNCTION NAME: average coordinates calculation" << std::endl 
-            << "VARIABLES: list of vars" << "\ncloud capacity, finvec_x and y, vector length, i, sumcount:" << std::endl 
-            << catchedCloud->points.capacity() << " "  << finvec_x << " " << finvec_y << " " << sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)) << " " << i << " " << sumcount << std::endl 
-            << "catchedCloud->points.at(i).x --> " <<  std::endl << catchedCloud->points.at(i).x << "catchedCloud->points.at(i).y --> " << catchedCloud->points.at(i).y << std::endl 
-            <<"_________________________________" << std::endl << "_________________________________" << std::endl);
+            // DEBUG rinfo
+            if(1)
+            {
+                ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl << "FUNCTION NAME: average coordinates calculation" << std::endl 
+                << "VARIABLES: list of vars" << "\ncloud capacity, finvec_x and y, vector length, i, sumcount:" << std::endl 
+                << catchedCloud->points.capacity() << " "  << finvec_x << " " << finvec_y << " " << sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)) << " " << i << " " << sumcount << std::endl 
+                << "catchedCloud->points.at(i).x --> " << catchedCloud->points.at(i).x << std::endl << "catchedCloud->points.at(i).y --> " << catchedCloud->points.at(i).y << std::endl 
+                <<"_________________________________" << std::endl << "_________________________________" << std::endl);
+            }
 
-            // DEBUG
+            // DEBUG rinfo
             if (finvec_x == finvec_y && finvec_x != 0)
             {
                 ROS_ERROR_STREAM("FINVECX IS EQ TO FINVECY. terminated.");
@@ -120,8 +128,11 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
             }
         }
     }
-    ROS_WARN_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl << "FUNCTION NAME: result vector in variables" << std::endl << "VARIABLES: list of vars:" << std::endl << "finvec_x -->" << finvec_x << std::endl << "finvec_y -->" << finvec_y << std::endl << "vector length -->" << sqrt(pow(finvec_x , 2) + pow(finvec_y , 2)) <<  std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl);
 
+    if(0)
+    {
+        ROS_WARN_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl << "FUNCTION NAME: result vector in variables" << std::endl << "VARIABLES: list of vars:" << std::endl << "finvec_x -->" << finvec_x << std::endl << "finvec_y -->" << finvec_y << std::endl << "vector length -->" << sqrt(pow(finvec_x , 2) + pow(finvec_y , 2)) <<  std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl);
+    }   
 
     //IDEA make a bullshit filter for potential fields and create max passed speed constant
 
@@ -131,22 +142,24 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
     q = q.normalize(); //SOLVED something is going with angle. cant say what, maybe its not a bug ---> in velocity calculation there was an if statement that tried to pass only > 0.001 coordiantes. It totally deleted all negative values from coordinates
 
 
-    // DEBUG
-    ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
-    << "FUNCTION NAME: angle calc" << std::endl 
-    << "VARIABLES: " << std::endl 
-    << "angles.yaw (atan)-->" << angles.yaw << std::endl << "finvec_y/finvec_x --> " << finvec_y/finvec_x << std::endl << "finvec_y --> " << finvec_y << std::endl << "finvec_x --> " << finvec_x << std::endl << std::endl 
-    << "_________________________________" << std::endl << "_________________________________" << std::endl);
-
+    // DEBUG rinfo
+    if(1)
+    {
+        ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
+        << "FUNCTION NAME: angle calc" << std::endl 
+        << "VARIABLES: " << std::endl 
+        << "angles.yaw (atan)-->" << angles.yaw << std::endl << "finvec_y/finvec_x --> " << finvec_y/finvec_x << std::endl << "finvec_y --> " << finvec_y << std::endl << "finvec_x --> " << finvec_x << std::endl << std::endl 
+        << "_________________________________" << std::endl << "_________________________________" << std::endl);
+    }
 
     //*-*-*-*-*-*-*-*--*-*-*-*-*--*--*-*-*-*-*-*-*--*--*-*-*-*-*-*-*-*-*-*-*--*-*-*-*
     //------------------------------------------------------------------------------
     // VISUALIZATION //RVIZ visualiztion code // TODO make it a func
     //------------------------------------------------------------------------------
     marker.header.stamp = ros::Time::now();
-    marker.header.frame_id = "map"; //FRAME
+    marker.header.frame_id = "laser"; //FRAME
     marker.ns = "speeds_namespace";
-    marker.id = sessionID;
+    marker.id = 1;
     marker.type = visualization_msgs::Marker::ARROW;
     marker.action = visualization_msgs::Marker::ADD;
     marker.pose.position.x = 0.0;
@@ -168,37 +181,64 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
     {
         vis_pub.publish(marker); // PUB //RVIZ publish
     }
+
+        marker.header.stamp = ros::Time::now();
+    marker2.header.frame_id = "laser"; //FRAME
+    marker2.ns = "speeds_namespace";
+    marker2.id = 2;
+    marker2.type = visualization_msgs::Marker::CYLINDER;
+    marker2.action = visualization_msgs::Marker::ADD;
+    marker2.pose.position.x = 0.0;
+    marker2.pose.position.y = 0.0;
+    marker2.pose.position.z = -0.05;
+    marker2.pose.orientation.x = 0;
+    marker2.pose.orientation.y = 0;
+    marker2.pose.orientation.z = 0;
+    marker2.pose.orientation.w = 0;
+    marker2.scale.x = sqrt(maxRange);
+    marker2.scale.y = sqrt(maxRange);
+    marker2.scale.z = 0.05;
+    marker2.color.a = 0.3;
+    marker2.color.r = 0.0;
+    marker2.color.g = 0.0;
+    marker2.color.b = 1.0;
+
+    if(publish_rviz_vizualization == 1)
+    {
+        vis_pub.publish(marker2); // PUB //RVIZ publish
+    }
     //*-*-*-*-*-*-*-*--*-*-*-*-*--*--*-*-*-*-*-*-*--*--*-*-*-*-*-*-*-*-*-*-*--*-*-*-*
 
 
     //CODEINFO Twist init and pub
     geometry_msgs::Twist twist;
-    if(abs(angles.yaw) - 0.2 < 0)
+    if(sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)) < 0.001)
     {
+        twist.linear.x = 0;
+        twist.linear.y = 0;
         twist.angular.z = 0;
-        if(sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)) < 0.001)
+        ROS_ERROR_STREAM(std::endl << "Speed vector is too small" << std::endl);
+    }
+    else
+    {
+        if(abs(angles.yaw) - 0.2 < 0)
         {
-            twist.linear.x = 0;
-            twist.linear.y = 0;
-            ROS_ERROR_STREAM(std::endl << "Speed vector is too small" << std::endl);
-        }
-        else 
-        {
+            twist.angular.z = 0;
             twist.linear.x = finvec_x;
             twist.linear.y = finvec_y;
         }
+        else if (angles.yaw > 0 && angles.yaw < 3.14 / 2)
+        {
+            ROS_ERROR_STREAM(std::endl << "Angle is correlating badly" << std::endl << "tan --> " << finvec_y/finvec_x << std::endl << "yaw --> " << angles.yaw * 180 / 3.14 << " degrees." << std::endl);
+            twist.angular.z = 0.4;
+        }
+            else if (angles.yaw < 0 && angles.yaw > - 3.14 / 2)
+        {
+            ROS_ERROR_STREAM(std::endl << "Angle is correlating badly" << std::endl << "tan --> " << finvec_y/finvec_x << std::endl << "yaw --> " << angles.yaw * 180 / 3.14 << " degrees." << std::endl);
+            twist.angular.z = -0.4;
+        }
     }
-    else if (angles.yaw > 0 && angles.yaw < 3.14 / 2)
-    {
-        ROS_ERROR_STREAM(std::endl << "Angle is correlating badly" << std::endl << "tan --> " << finvec_y/finvec_x << std::endl << "yaw --> " << angles.yaw * 180 / 3.14 << " degrees." << std::endl);
-        twist.angular.z = 0.4;
-    }
-        else if (angles.yaw < 0 && angles.yaw > - 3.14 / 2)
-    {
-        ROS_ERROR_STREAM(std::endl << "Angle is correlating badly" << std::endl << "tan --> " << finvec_y/finvec_x << std::endl << "yaw --> " << angles.yaw * 180 / 3.14 << " degrees." << std::endl);
-        twist.angular.z = -0.4;
-    }
-    
+
     speed_pub.publish(twist);
 
 }
