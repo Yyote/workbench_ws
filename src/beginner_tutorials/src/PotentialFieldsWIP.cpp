@@ -58,25 +58,22 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
 
     // CODEINFO
     // Calculate average x and y and make a vector of retraction from them
-    // PROBLEM 1
-    // Algorithms calculates retraction for all points - this makes problems when some points get out of sight
-    // PROBLEM 2
-    // For an average vector change in 1-20 points is very little. That is a problem when the robot gets close to objects as speed vector is changing too little
-    int sumcount = 0;
+        int sumcount = 0;
     // potfield.points.resize(catchedCloud->points.capacity()); //DEL
 
     double finvec_x = 0;
     double finvec_y = 0;
+    double finangle = 0;
 
     //DEBUG
     // ROS_INFO_STREAM("catchedCloud capacity is ---> " << catchedCloud->points.capacity());
 
-    for(int i = 0; i < catchedCloud->points.capacity(); i++) //SOLVED getting out of range ---> you should be more careful when working with cycle's iterator incrementation
+    for(int i = 0; i < catchedCloud->points.capacity(); i++)
     {
-        if(okcheck == 1)
-
+        finangle += atan(-catchedCloud->points.at(i).y / catchedCloud->points.at(i).x);
+        if(i % 3 == 0)
         {
-            if(sqrt(pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2)) >= maxRange || sqrt(pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2)) <= 0.05 || catchedCloud->points.at(i).x < 0.001 || catchedCloud->points.at(i).y < 0.001) //LOG NEW changed sqrt from 0.2 to 0.05
+            if(/*sqrt(pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2)) >= maxRange || sqrt(pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2)) <= 0.05 ||*/ catchedCloud->points.at(i).x < 0.001 || catchedCloud->points.at(i).y < 0.001) //LOG NEW changed sqrt from 0.2 to 0.05
             {
                 finvec_x += 0;
                 finvec_y += 0;
@@ -85,8 +82,8 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
 
             else 
             {
-                finvec_y += (C / catchedCloud->points.at(i).y);
-                finvec_x += (C / catchedCloud->points.at(i).x); //LOG NEW removed sqrt
+                finvec_y += (C / (catchedCloud->points.at(i).y));
+                finvec_x += (C / (catchedCloud->points.at(i).x)); //LOG NEW removed sqrt
 
                 if(finvec_x > maxRange)
                 {
@@ -100,6 +97,8 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
 
                 sumcount += 1;
             }
+
+            finangle = finangle / sumcount;
 
             double bufx, bufy; //DEBUG
             bufx = finvec_x;
@@ -134,7 +133,7 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
 
     // CODEINFO angle calculation to pass to rviz markers ---> calculate current(i) vector's angle 
     //IDEA replace angles object with angles array to store angle for each vector
-    angles.yaw = atan(-finvec_y / finvec_x); //SOLVED claculate angle one time for the resulting vector
+    angles.yaw = atan(-finvec_y/finvec_x); //SOLVED claculate angle one time for the resulting vector
     q.setRPY(angles.roll, angles.pitch, angles.yaw);
     q = q.normalize(); //BUG something is going with angle. cant say what, maybe its not a bug
 
@@ -182,7 +181,7 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
 
     //CODEINFO Twist init and pub
     geometry_msgs::Twist twist;
-    if(abs(angles.yaw - 1.57) < 0.05)
+    if(abs(angles.yaw - 1.57) < 0.005)
     {
         twist.angular.z = 0;
         if(sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)) < 0.05)
