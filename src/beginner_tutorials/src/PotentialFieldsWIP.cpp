@@ -58,9 +58,9 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
 
     visualization_msgs::Marker marker; // RVIZ marker init
     visualization_msgs::Marker marker2; // RVIZ marker init
-    visualization_msgs::MarkerArray debug_cloud;
+    sensor_msgs::PointCloud debug_cloud; // LOG NEW debug_cloud
 
-    debug_cloud.markers.resize(catchedCloud->points.capacity());
+    debug_cloud.points.resize(catchedCloud->points.capacity()); // LOG NEW debug cloud
 
     // CODEINFO
     // Calculate average x and y and make a vector of retraction from them
@@ -72,30 +72,20 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
 
     for(int i = 0; i < catchedCloud->points.capacity(); i++)
     {
-        //************************    PSEUDO CONSTS     **************************
+    //************************    PSEUDO CONSTS     **************************
     double vector_length = sqrt( pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2) );
     //************************************************************************
 
-    debug_cloud.markers.at(i).header.stamp = ros::Time::now();
-    debug_cloud.markers.at(i).header.frame_id = "laser"; //FRAME
-    debug_cloud.markers.at(i).ns = "debug_cloud_ns";
-    debug_cloud.markers.at(i).id = i;
-    debug_cloud.markers.at(i).type = visualization_msgs::Marker::SPHERE;
-    debug_cloud.markers.at(i).action = visualization_msgs::Marker::ADD;
-    debug_cloud.markers.at(i).pose.position.x = NULL;
-    debug_cloud.markers.at(i).pose.position.y = NULL;
-    debug_cloud.markers.at(i).pose.position.z = NULL;
-    debug_cloud.markers.at(i).pose.orientation.x = 0;
-    debug_cloud.markers.at(i).pose.orientation.y = 0;
-    debug_cloud.markers.at(i).pose.orientation.z = 0;
-    debug_cloud.markers.at(i).pose.orientation.w = 0;
-    debug_cloud.markers.at(i).scale.x = 0.02;
-    debug_cloud.markers.at(i).scale.y = 0.02;
-    debug_cloud.markers.at(i).scale.z = 0.02;
-    debug_cloud.markers.at(i).color.a = 1.0;
-    debug_cloud.markers.at(i).color.r = 1.0;
-    debug_cloud.markers.at(i).color.g = 0.0;
-    debug_cloud.markers.at(i).color.b = 0.0;
+    //************************    LOCAL VARS     *****************************
+    double tmpvec_x, tmpvec_y;
+    //************************************************************************
+
+
+    debug_cloud.header.stamp = ros::Time::now();
+    debug_cloud.header.frame_id = "laser"; //FRAME
+    debug_cloud.points.at(i).x = NULL;
+    debug_cloud.points.at(i).y = NULL;
+    debug_cloud.points.at(i).z = NULL;
         
         int point_step = 1; // LOG NEW added point_step variable to skip points in such way that it won't effect the amplitude of the resulting vector
 
@@ -103,9 +93,9 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
         {
             if(!( pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2) >= maxRange * maxRange || pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2) <= minRange * minRange))  // Проверка на попадание в зону видимости
             {
-                //DEBUG rinfo
+                //DEBUG INFO rinfo
                 //****************************************************************************************************
-                if(1)
+                if(0)
                 {
                     ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
                     << "FUNCTION NAME: zero fight" << std::endl 
@@ -116,16 +106,39 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
                 }
                 //****************************************************************************************************
 
-                finvec_y += C * point_step * ( (1 / vector_length) * sin(atan(catchedCloud->points.at(i).y / catchedCloud->points.at(i).x))/* - (maxRange / sqrt(2))*/ );
-                finvec_x += C * point_step * ( (1 / vector_length) * cos(atan(catchedCloud->points.at(i).y / catchedCloud->points.at(i).x))/* - (maxRange / sqrt(2))*/ ); // SOLVED change the formula for the pithagorean
+                tmpvec_y = C * point_step * ( (1 / vector_length) * sin(atan(catchedCloud->points.at(i).y / catchedCloud->points.at(i).x))/* - (maxRange / sqrt(2))*/ ); // BUG check atan limits and adjust the formula
+                tmpvec_x = C * point_step * ( (1 / vector_length) * cos(atan(catchedCloud->points.at(i).y / catchedCloud->points.at(i).x))/* - (maxRange / sqrt(2))*/ ); // SOLVED change the formula for the pithagorean
+
+                //DEBUG INFO rwarn
+                //****************************************************************************************************
+                if(1)
+                {
+                    ROS_WARN_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
+                    << "FUNCTION NAME: tmpvec_y check" << std::endl 
+                    << "VARIABLES: " << std::endl
+                    << "catched point y -->"  << catchedCloud->points.at(i).y << std::endl 
+                    << "catched point x -->"  << catchedCloud->points.at(i).x << std::endl 
+                    << "tmpvec_y -->"  << tmpvec_y << std::endl 
+                    << "sin(atan(catchedCloud->points.at(i).y / catchedCloud->points.at(i).x)) * (1 / vec_length) -->"  << (1 / vector_length) * sin(atan(catchedCloud->points.at(i).y / catchedCloud->points.at(i).x)) << std::endl 
+                    << "tmpvec_x -->"  << tmpvec_x << std::endl 
+                    << "cos(atan(catchedCloud->points.at(i).y / catchedCloud->points.at(i).x)) * (1 / vec_length) -->"  << (1 / vector_length) * cos(atan(catchedCloud->points.at(i).y / catchedCloud->points.at(i).x)) << std::endl 
+                    << "_________________________________" << std::endl << "_________________________________" << std::endl);
+                }
+                //****************************************************************************************************
+
+                if(catchedCloud->points.at(i).x > 0 && tmpvec_x > 0)
+                {
+                    tmpvec_x = -tmpvec_x;
+                }
 
 
-                debug_cloud.markers.at(i).pose.position.x = catchedCloud->points.at(i).x;
-                debug_cloud.markers.at(i).pose.position.y = catchedCloud->points.at(i).y;
-                debug_cloud.markers.at(i).pose.position.z = catchedCloud->points.at(i).z;
-                debug_cloud.markers.at(i).color.r = 0.0;
-                debug_cloud.markers.at(i).color.g = 1.0;
-                debug_cloud.markers.at(i).color.b = 0.0;
+                finvec_x += tmpvec_x;
+                finvec_y += tmpvec_y;
+
+
+                debug_cloud.points.at(i).x = catchedCloud->points.at(i).x;
+                debug_cloud.points.at(i).y = catchedCloud->points.at(i).y; // LOG NEW debug_cloud
+                debug_cloud.points.at(i).z = catchedCloud->points.at(i).z;
 
 
                 sumcount += 1;
@@ -140,8 +153,8 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
             bufx = finvec_x;
             bufy = finvec_y;          
 
-            // DEBUG rinfo
-            if(1)
+            // DEBUG INFO rinfo
+            if(0)
             {
                 ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl << "FUNCTION NAME: average coordinates calculation" << std::endl 
                 << "VARIABLES: list of vars" << "\ncloud capacity, finvec_x and y, vector length, i, sumcount:" << std::endl 
@@ -175,13 +188,14 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
     //IDEA make a bullshit filter for potential fields and create max passed speed constant
 
     // CODEINFO angle calculation to pass to rviz markers ---> calculate current(i) vector's angle 
-    angles.yaw = atan(finvec_y/finvec_x) - (M_PI) * (finvec_x > 0); //BUG no vector inversion
+    angles.yaw = (atan(finvec_y/finvec_x)/* - (M_PI) * (finvec_x > 0)*/); //BUG no vector inversion
+    angles.yaw = (angles.yaw + 2 * M_PI) * (angles.yaw < - M_PI) + (angles.yaw) * (!(angles.yaw < - M_PI));
     q.setRPY(angles.roll, angles.pitch, angles.yaw);
     q = q.normalize(); //SOLVED something is going with angle. cant say what, maybe its not a bug ---> in velocity calculation there was an if statement that tried to pass only > 0.001 coordiantes. It totally deleted all negative values from coordinates
 
 
-    // DEBUG rinfo
-    if(1)
+    // DEBUG INFO rinfo
+    if(0)
     {
         ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
         << "FUNCTION NAME: angle calc" << std::endl 
@@ -250,7 +264,7 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
 
     //CODEINFO Twist init and pub
     geometry_msgs::Twist twist;
-    if(sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)) < 0.001)
+    if(sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)) < 0.05)
     {
         twist.linear.x = 0;
         twist.linear.y = 0;
@@ -265,15 +279,33 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
             twist.linear.x = finvec_x;
             twist.linear.y = finvec_y;
         }
-        else if (angles.yaw > 0 && angles.yaw < M_PI / 2)
+        
+        
+        else if (angles.yaw > 0 && angles.yaw < M_PI)
         {
             ROS_ERROR_STREAM(std::endl << "Angle is correlating badly" << std::endl << "tan --> " << finvec_y/finvec_x << std::endl << "yaw --> " << angles.yaw * 180 / M_PI << " degrees." << std::endl);
             twist.angular.z = 0.4;
         }
-            else if (angles.yaw < 0 && angles.yaw > - M_PI / 2)
+
+
+        else if (angles.yaw < 0 && angles.yaw >= -M_PI)
         {
             ROS_ERROR_STREAM(std::endl << "Angle is correlating badly" << std::endl << "tan --> " << finvec_y/finvec_x << std::endl << "yaw --> " << angles.yaw * 180 / M_PI << " degrees." << std::endl);
             twist.angular.z = -0.4;
+        }
+        else
+        {
+            //DEBUG INFO rerror
+            //****************************************************************************************************
+            if(0)
+            {
+                ROS_ERROR_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
+                << "FUNCTION NAME: some shit is happening" << std::endl 
+                << "VARIABLES: "
+                << "angles.yaw -->" << angles.yaw << std::endl 
+                << "_________________________________" << std::endl << "_________________________________" << std::endl);
+            }
+            //****************************************************************************************************
         }
     }
 
@@ -293,7 +325,7 @@ ros::NodeHandle rvizor; // mrviz markers nh
 
     //PUB adverts
     vis_pub = rvizor.advertise<visualization_msgs::Marker>("/potential_field_result", 1000);
-    vis_arr_pub = rvizor.advertise<visualization_msgs::MarkerArray>("/debug_points", 1000);
+    vis_arr_pub = rvizor.advertise<sensor_msgs::PointCloud>("/debug_points", 1000);
     speed_pub = vlcts.advertise<geometry_msgs::Twist>("/cmd_vel", 1000);
     catchPC_sub = cs.subscribe("/transPC", 1000, got_scanCallback); // SUB catchPC sub
 
