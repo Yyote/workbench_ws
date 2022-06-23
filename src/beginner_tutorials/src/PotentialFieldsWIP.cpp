@@ -18,9 +18,9 @@
 // PRESETUP 
 bool publish_rviz_vizualization = 1;
 int okcheck = 1;
-float maxRange = 1; //max range to calculate
+float maxRange = 2; //max range to calculate
 float minRange = 0.2; //min range to calculate
-double C = 0.001;
+double C = 0.003;
 
 // SUB catchPC creation
 ros::Subscriber catchPC_sub;
@@ -106,9 +106,17 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
                 }
                 //****************************************************************************************************
 
-                tmpvec_y = C * point_step * ( (1 / vector_length) * sin(atan(catchedCloud->points.at(i).y / catchedCloud->points.at(i).x))/* - (maxRange / sqrt(2))*/ ); // BUG check atan limits and adjust the formula
-                tmpvec_x = C * point_step * ( (1 / vector_length) * cos(atan(catchedCloud->points.at(i).y / catchedCloud->points.at(i).x))/* - (maxRange / sqrt(2))*/ ); // SOLVED change the formula for the pithagorean
-
+                if (catchedCloud->points.at(i).x != 0)
+                {
+                    tmpvec_y = - C * point_step * ( (1 / vector_length) * catchedCloud->points.at(i).y / vector_length)/* - (maxRange / sqrt(2))*/ ; // BUG check atan limits and adjust the formula
+                    tmpvec_x = - C * point_step * ( (1 / vector_length) * catchedCloud->points.at(i).x / vector_length)/* - (maxRange / sqrt(2))*/; // SOLVED change the formula for the pithagorean
+                }
+                else
+                {
+                    tmpvec_y = C * point_step * ( (1 / vector_length) * sin(atan(catchedCloud->points.at(i).x / catchedCloud->points.at(i).y))/* - (maxRange / sqrt(2))*/ ); // BUG check atan limits and adjust the formula
+                    tmpvec_x = C * point_step * ( (1 / vector_length) * cos(atan(catchedCloud->points.at(i).x / catchedCloud->points.at(i).y))/* - (maxRange / sqrt(2))*/ ); // SOLVED change the formula for the pithagorean
+                }
+                
                 //DEBUG INFO rwarn
                 //****************************************************************************************************
                 if(1)
@@ -190,7 +198,7 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
     // CODEINFO angle calculation to pass to rviz markers ---> calculate current(i) vector's angle 
     angles.yaw = (atan(finvec_y/finvec_x)/* - (M_PI) * (finvec_x > 0)*/); //BUG no vector inversion
     angles.yaw = (angles.yaw + 2 * M_PI) * (angles.yaw < - M_PI) + (angles.yaw) * (!(angles.yaw < - M_PI));
-    q.setRPY(angles.roll, angles.pitch, angles.yaw);
+    q.setRPY(angles.roll, angles.pitch, angles.yaw - (M_PI) * (finvec_x > 0));
     q = q.normalize(); //SOLVED something is going with angle. cant say what, maybe its not a bug ---> in velocity calculation there was an if statement that tried to pass only > 0.001 coordiantes. It totally deleted all negative values from coordinates
 
 
@@ -221,12 +229,12 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
     marker.pose.orientation.y = q.y();
     marker.pose.orientation.z = q.z();
     marker.pose.orientation.w = q.w();
-    marker.scale.x = sqrt(pow(finvec_x, 2) + pow(finvec_y, 2));
+    marker.scale.x = -5*sqrt(pow(finvec_x, 2) + pow(finvec_y, 2));
     marker.scale.y = 0.05;
     marker.scale.z = 0.05;
     marker.color.a = 1.0;
-    marker.color.r = 1.0;
-    marker.color.g = 0.0;
+    marker.color.r = 0.0;
+    marker.color.g = 1.0;
     marker.color.b = 0.0;
 
     if(publish_rviz_vizualization == 1)
@@ -264,7 +272,7 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
 
     //CODEINFO Twist init and pub
     geometry_msgs::Twist twist;
-    if(sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)) < 0.05)
+    if(sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)) < 0.01)
     {
         twist.linear.x = 0;
         twist.linear.y = 0;
@@ -334,4 +342,3 @@ ros::NodeHandle rvizor; // mrviz markers nh
 
     return 0;
 }
-
