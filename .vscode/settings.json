@@ -78,5 +78,9 @@
     },
     "cmake.configureOnOpen": true,
     "todo-tree.tree.showBadges": true,
-    "todo-tree.tree.showCountsInTree": true
+    "todo-tree.tree.showCountsInTree": true,
+    "python.analysis.extraPaths": [
+        "/home/leeandromeda/catkin_ws/devel/lib/python3/dist-packages",
+        "/opt/ros/noetic/lib/python3/dist-packages"
+    ]
 }
