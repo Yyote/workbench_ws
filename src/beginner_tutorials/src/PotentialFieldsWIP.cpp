@@ -18,9 +18,10 @@
 // PRESETUP 
 bool publish_rviz_vizualization = 1;
 int okcheck = 1;
-float maxRange = 2; //max range to calculate
+float maxRange = 1; //max range to calculate
 float minRange = 0.2; //min range to calculate
-double C = 0.003;
+double C = 0.002;
+int regulator_mode = 1; //1 - wheeled bot, 2 - quadrocopter
 
 // SUB catchPC creation
 ros::Subscriber catchPC_sub;
@@ -289,14 +290,14 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
         }
         
         
-        else if (angles.yaw > 0 && angles.yaw < M_PI)
+        else if (angles.yaw > 0 && angles.yaw < M_PI && regulator_mode == 1)
         {
             ROS_ERROR_STREAM(std::endl << "Angle is correlating badly" << std::endl << "tan --> " << finvec_y/finvec_x << std::endl << "yaw --> " << angles.yaw * 180 / M_PI << " degrees." << std::endl);
             twist.angular.z = 0.4;
         }
 
 
-        else if (angles.yaw < 0 && angles.yaw >= -M_PI)
+        else if (angles.yaw < 0 && angles.yaw >= -M_PI && regulator_mode == 1)
         {
             ROS_ERROR_STREAM(std::endl << "Angle is correlating badly" << std::endl << "tan --> " << finvec_y/finvec_x << std::endl << "yaw --> " << angles.yaw * 180 / M_PI << " degrees." << std::endl);
             twist.angular.z = -0.4;
