@@ -37,8 +37,6 @@ class EulerAngles {
     float yaw;
 };
 
-
-
 int shutdown()
 {
     ROS_ERROR_STREAM(std::endl << std::endl << "terminated. code is " << okcheck);
