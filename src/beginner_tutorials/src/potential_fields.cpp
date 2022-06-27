@@ -20,7 +20,7 @@ bool publish_rviz_vizualization = 1;
 int okcheck = 1;
 float maxRange = 1; //max range to calculate
 float minRange = 0.2; //min range to calculate
-double C = 0.002;
+double C = 0.001;
 int regulator_mode = 1; //1 - wheeled bot, 2 - quadrocopter
 
 // SUB catchPC creation
@@ -230,7 +230,7 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
     potential_velocity_vector_marker.pose.orientation.y = q.y();
     potential_velocity_vector_marker.pose.orientation.z = q.z();
     potential_velocity_vector_marker.pose.orientation.w = q.w();
-    potential_velocity_vector_marker.scale.x = -5*sqrt(pow(finvec_x, 2) + pow(finvec_y, 2));
+    potential_velocity_vector_marker.scale.x = -sqrt(pow(finvec_x, 2) + pow(finvec_y, 2));
     potential_velocity_vector_marker.scale.y = 0.05;
     potential_velocity_vector_marker.scale.z = 0.05;
     potential_velocity_vector_marker.color.a = 1.0;

@@ -10,8 +10,8 @@ int main(int argc, char** argv){
   geometry_msgs::TransformStamped transformStamped;
 
   
-  transformStamped.header.frame_id = "turtle1";
-  transformStamped.child_frame_id = "carrot1";
+  transformStamped.header.frame_id = "base_fooprint";
+  transformStamped.child_frame_id = "laser";
   transformStamped.transform.translation.x = 0.0;
   transformStamped.transform.translation.y = 2.0;
   transformStamped.transform.translation.z = 0.0;

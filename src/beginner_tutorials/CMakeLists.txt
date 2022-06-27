@@ -234,13 +234,13 @@ add_executable(LPVCPointCloud src/LPVCPointCloud.cpp)
 target_link_libraries(LPVCPointCloud ${catkin_LIBRARIES})
 add_dependencies(LPVCPointCloud beginner_tutorials_generate_messages_cpp)
 
-add_executable(PotentialFieldsMain src/PotentialFieldsMain.cpp)
-target_link_libraries(PotentialFieldsMain ${catkin_LIBRARIES})
-add_dependencies(PotentialFieldsMain beginner_tutorials_generate_messages_cpp)
+add_executable(potential_fields src/potential_fields.cpp)
+target_link_libraries(potential_fields ${catkin_LIBRARIES})
+add_dependencies(potential_fields beginner_tutorials_generate_messages_cpp)
 
-add_executable(PotentialFieldsWIP src/PotentialFieldsWIP.cpp)
-target_link_libraries(PotentialFieldsWIP ${catkin_LIBRARIES})
-add_dependencies(PotentialFieldsWIP beginner_tutorials_generate_messages_cpp)
+add_executable(tf2_laser_static_to_base_footprint src/tf2_laser_static_to_base_footprint.cpp)
+target_link_libraries(tf2_laser_static_to_base_footprint ${catkin_LIBRARIES})
+add_dependencies(tf2_laser_static_to_base_footprint beginner_tutorials_generate_messages_cpp)
 
 catkin_install_python(PROGRAMS scripts/Node1.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
