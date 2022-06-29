@@ -238,9 +238,9 @@ add_executable(potential_fields src/potential_fields.cpp)
 target_link_libraries(potential_fields ${catkin_LIBRARIES})
 add_dependencies(potential_fields beginner_tutorials_generate_messages_cpp)
 
-add_executable(tf2_laser_static_to_base_footprint src/tf2_laser_static_to_base_footprint.cpp)
-target_link_libraries(tf2_laser_static_to_base_footprint ${catkin_LIBRARIES})
-add_dependencies(tf2_laser_static_to_base_footprint beginner_tutorials_generate_messages_cpp)
+add_executable(tf2_laser_bind_to_odom src/tf2_laser_bind_to_odom.cpp)
+target_link_libraries(tf2_laser_bind_to_odom ${catkin_LIBRARIES})
+add_dependencies(tf2_laser_bind_to_odom beginner_tutorials_generate_messages_cpp)
 
 add_executable(tf2_static_broadcaster_world src/tf2_static_broadcaster_world.cpp)
 target_link_libraries(tf2_static_broadcaster_world ${catkin_LIBRARIES})

@@ -10,11 +10,11 @@ void poseCallback(const nav_msgs::OdometryPtr& odom){
     geometry_msgs::TransformStamped transformStamped;
 
     transformStamped.header.stamp = ros::Time::now();
-    transformStamped.header.frame_id = "base_footprint";
+    transformStamped.header.frame_id = "odom";
     transformStamped.child_frame_id = "laser";
-    transformStamped.transform.translation.x = 0;
-    transformStamped.transform.translation.y = 0;
-    transformStamped.transform.translation.z = 0;   
+    transformStamped.transform.translation.x = odom->pose.pose.position.x;
+    transformStamped.transform.translation.y = odom->pose.pose.position.y;
+    transformStamped.transform.translation.z = odom->pose.pose.position.z;   
 
     tf2::Quaternion q;
     q.setX(odom->pose.pose.orientation.x);

@@ -3,5 +3,5 @@
   <node name="LidarFormattingRPLidar" pkg="beginner_tutorials" type="LidarFormattingRPLidar" output="screen"/>
   <node name="LStoPC" pkg="beginner_tutorials" type="LStoPC" output="screen"/>
   <node name="Potential_fields" pkg="beginner_tutorials" type="potential_fields" output="screen"/>
-  <node name="TF2_transform" pkg="beginner_tutorials" type="tf2_laser_static_to_base_footprint" output="screen"/>
+  <node name="TF2_transform" pkg="beginner_tutorials" type="tf2_laser_bind_to_odomtf2_laser_bind_to_odom" output="screen"/>
 </launch>
