@@ -254,6 +254,10 @@ add_executable(tf2_static_broadcaster_base_footprint_to_map src/tf2_static_broad
 target_link_libraries(tf2_static_broadcaster_base_footprint_to_map ${catkin_LIBRARIES})
 add_dependencies(tf2_static_broadcaster_base_footprint_to_map beginner_tutorials_generate_messages_cpp)
 
+add_executable(oop src/oop.cpp)
+target_link_libraries(oop ${catkin_LIBRARIES})
+add_dependencies(oop beginner_tutorials_generate_messages_cpp)
+
 catkin_install_python(PROGRAMS scripts/Node1.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
