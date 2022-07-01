@@ -8,7 +8,9 @@
 #include "ros/ros.h"
 #include "sensor_msgs/PointCloud.h"
 #include "beginner_tutorials/VelocitiesPC.h"
+#include "nav_msgs/Odometry.h"
 #include "geometry_msgs/Quaternion.h"
+#include "geometry_msgs/PoseStamped.h"
 #include "tf2/LinearMath/Quaternion.h"
 #include "visualization_msgs/Marker.h"
 #include "visualization_msgs/MarkerArray.h"
@@ -23,15 +25,19 @@ class MarkerHandler {
     ros::Publisher marker_pub;
 
     public:
+    std::string module_name;
+
     MarkerHandler()
     {
         marker.header.stamp = ros::Time::now();
+        module_name = "default";
     }
 
     MarkerHandler(std::string pub_topic) 
     {
         marker.header.stamp = ros::Time::now();
         marker_pub = rvizor.advertise<visualization_msgs::Marker>(pub_topic, 1000);
+        module_name = "default";
     }
 
     void advertise_to_topic(std::string pub_topic)
@@ -175,8 +181,61 @@ class MarkerHandler {
     {
         marker_pub.publish(marker);
     }
+
+    void set_module_name(std::string new_name)
+    {
+        module_name = new_name;
+    }
+
+    void debug_info(std::string new_module_name)
+    {
+        set_module_name(new_module_name);
+        //DEBUG rinfo
+        //****************************************************************************************************
+        if(1)
+        {
+            ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
+            << "FUNCTION NAME: " << module_name << std::endl 
+            << "VARIABLES: " << std::endl 
+            << "frame id -->" << marker.header.frame_id << std::endl 
+            << "id -->" << marker.id << std::endl 
+            << "type -->" << marker.type << std::endl 
+            << "pose x -->" << marker.pose.position.x << std::endl 
+            << "pose y -->" << marker.pose.position.y << std::endl 
+            << "pose z -->" << marker.pose.position.z << std::endl 
+            << "quaternion w -->" << marker.pose.orientation.w << std::endl 
+            << "scale x -->" << marker.scale.x << std::endl 
+            << "scale y -->" << marker.scale.y << std::endl 
+            << "scale z -->" << marker.scale.z << std::endl 
+            << "color a -->" << marker.color.a << std::endl 
+            << "color r -->" << marker.color.r << std::endl 
+            << "color g -->" << marker.color.g << std::endl 
+            << "color b -->" << marker.color.b << std::endl 
+            << "_________________________________" << std::endl << "_________________________________" << std::endl);
+        }
+        //****************************************************************************************************
+    }
 };
 
+    // potential_velocity_vector_marker.header.frame_id = "laser"; //FRAME
+    // potential_velocity_vector_marker.ns = "speeds_namespace";
+    // potential_velocity_vector_marker.id = 1;
+    // potential_velocity_vector_marker.type = visualization_msgs::Marker::ARROW;
+    // potential_velocity_vector_marker.action = visualization_msgs::Marker::ADD;
+    // potential_velocity_vector_marker.pose.position.x = 0.0;
+    // potential_velocity_vector_marker.pose.position.y = 0.0;
+    // potential_velocity_vector_marker.pose.position.z = 0.0;
+    // potential_velocity_vector_marker.pose.orientation.x = q.x();
+    // potential_velocity_vector_marker.pose.orientation.y = q.y();
+    // potential_velocity_vector_marker.pose.orientation.z = q.z();
+    // potential_velocity_vector_marker.pose.orientation.w = q.w();
+    // potential_velocity_vector_marker.scale.x = -sqrt(pow(finvec_x, 2) + pow(finvec_y, 2));
+    // potential_velocity_vector_marker.scale.y = 0.05;
+    // potential_velocity_vector_marker.scale.z = 0.05;
+    // potential_velocity_vector_marker.color.a = 1.0;
+    // potential_velocity_vector_marker.color.r = 0.0;
+    // potential_velocity_vector_marker.color.g = 1.0;
+    // potential_velocity_vector_marker.color.b = 0.0;
 class EulerAngles {
     public:
     float roll;
@@ -186,15 +245,15 @@ class EulerAngles {
 
 class PotentialFieldRepulsive {
     private:
-    double C;
     float maxRange; //max range to calculate
     float minRange; //min range to calculate
+    double C;
     std::string final_vel_arrow_topic;
     EulerAngles angles;
     MarkerHandler final_vel_arrow;
     ros::Publisher vis_arr_pub;
-    ros::NodeHandle rvizor;
-    int publish_rviz_vizualization = 1;
+    ros::NodeHandle debug_cloud_nh;
+    int publish_rviz_vizualization;
 
     int shutdown()
     {
@@ -217,9 +276,10 @@ class PotentialFieldRepulsive {
         angles.roll = 0;
         angles.pitch = 0;
         angles.yaw = 0;     
-        final_vel_arrow_topic = "/potential_field_result";
+        final_vel_arrow_topic = "/potential_field_REPULSION";
         final_vel_arrow.advertise_to_topic(final_vel_arrow_topic);
-        vis_arr_pub = rvizor.advertise<sensor_msgs::PointCloud>("/debug_points", 1000);
+        vis_arr_pub = debug_cloud_nh.advertise<sensor_msgs::PointCloud>("/debug_points", 1000);
+        publish_rviz_vizualization = 1;
     }   
 
     void calculate_repulse_vector(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
@@ -355,7 +415,7 @@ class PotentialFieldRepulsive {
         q = q.normalize(); //SOLVED something is going with angle. cant say what, maybe its not a bug ---> in velocity calculation there was an if statement that tried to pass only > 0.001 coordiantes. It totally deleted all negative values from coordinates
 
         // DEBUG INFO rinfo
-        if(0)
+        if(1)
         {
             ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
             << "FUNCTION NAME: angle calc" << std::endl 
@@ -370,15 +430,104 @@ class PotentialFieldRepulsive {
         //------------------------------------------------------------------------------
         final_vel_arrow.set_frame("laser"); //FRAME
         final_vel_arrow.set_namespace("speeds_namespace");
-        final_vel_arrow.set_id(1);
+        final_vel_arrow.set_id(5);
         final_vel_arrow.set_type(0);
         final_vel_arrow.set_pose(0, 0, 0, q);
         final_vel_arrow.set_scale(-sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)), 0.05, 0.05);
         final_vel_arrow.set_color(1.0, 0.0, 1.0, 0.0);
+        final_vel_arrow.debug_info("Стрелочка");
 
         if(publish_rviz_vizualization == 1)
         {
             final_vel_arrow.publish_marker(); // PUB //RVIZ publish
+        }
+        //*-*-*-*-*-*-*-*--*-*-*-*-*--*--*-*-*-*-*-*-*--*--*-*-*-*-*-*-*-*-*-*-*--*-*-*-*
+    }
+};
+
+
+class PotentialFieldAttractive
+{
+    private:
+    double C;
+    std::string final_vel_arrow_topic;
+    EulerAngles angles;
+    MarkerHandler final_vel_arrow;
+    MarkerHandler goal;
+    int publish_rviz_vizualization;
+    double vector_length;
+    // ros::NodeHandle debug_cloud_nh;
+    // ros::Publisher attraction_vector_pub;
+
+    public:
+    double odom_x;
+    double odom_y;
+    double goal_x; // Полученная координата х
+    double goal_y; // Полученная у
+    double finvec_x; // Рассчитанная точка
+    double finvec_y; // Рассчитанная точка
+
+    PotentialFieldAttractive()
+    {
+        C = 1;
+        final_vel_arrow_topic = "/potential_field_ATTRACTION";
+        int publish_rviz_visualisation = 1;
+        goal_x = 0;
+        goal_y = 0;
+        finvec_x = 0;
+        finvec_y = 0;
+        final_vel_arrow.advertise_to_topic(final_vel_arrow_topic);
+        goal.advertise_to_topic("/goal_marker");
+    }
+
+    void calculate_attract_vector()
+    {   
+        goal_x = goal_x - odom_x;
+        goal_y = goal_y - odom_y;
+        vector_length = sqrt((goal_x * goal_x) + (goal_y + goal_y));
+        finvec_y = C * ((1 / vector_length) * goal_y / vector_length)/* - (maxRange / sqrt(2))*/; // BUG check atan limits and adjust the formula
+        finvec_x = C * ((1 / vector_length) * goal_x / vector_length)/* - (maxRange / sqrt(2))*/; // SOLVED change the formula for the pithagorean
+
+
+        angles.yaw = (atan(finvec_y/finvec_x)/* - (M_PI) * (finvec_x > 0)*/); //BUG no vector inversion
+        angles.yaw = (angles.yaw + 2 * M_PI) * (angles.yaw < - M_PI) + (angles.yaw) * (!(angles.yaw < - M_PI));
+
+        tf2::Quaternion q;
+
+        //IDEA make a bullshit filter for potential fields and create max passed speed constant
+        q.setRPY(angles.roll, angles.pitch, angles.yaw - (M_PI) * (finvec_x > 0));
+        q = q.normalize(); //SOLVED something is going with angle. cant say what, maybe its not a bug ---> in velocity calculation there was an if statement that tried to pass only > 0.001 coordiantes. It totally deleted all negative values from coordinates
+
+        //*-*-*-*-*-*-*-*--*-*-*-*-*--*--*-*-*-*-*-*-*--*--*-*-*-*-*-*-*-*-*-*-*--*-*-*-*
+        //------------------------------------------------------------------------------
+        // VISUALIZATION //RVIZ visualiztion code // TODO make it a func
+        //------------------------------------------------------------------------------
+        final_vel_arrow.set_frame("laser"); //FRAME
+        final_vel_arrow.set_namespace("speeds_namespace2");
+        final_vel_arrow.set_id(3);
+        final_vel_arrow.set_type(0);
+        final_vel_arrow.set_pose(0, 0, 0, q);
+        final_vel_arrow.set_scale(-sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)), 0.05, 0.05);
+        final_vel_arrow.set_color(1.0, 1.0, 0.0, 0.0);
+        final_vel_arrow.debug_info("Arrow");
+
+        if(publish_rviz_vizualization == 1)
+        {
+            final_vel_arrow.publish_marker(); // PUB //RVIZ publish
+        }
+
+        goal.set_frame("laser"); //FRAME
+        goal.set_namespace("speeds_namespace3");
+        goal.set_id(76);
+        goal.set_type(2);
+        goal.set_pose(finvec_x, finvec_y, 0, q);
+        goal.set_scale(0.05, 0.05, 0.05);
+        goal.set_color(1.0, 1.0, 0.0, 0.0);
+        goal.debug_info("Goal");
+
+        if(publish_rviz_vizualization == 1)
+        {
+            goal.publish_marker(); // PUB //RVIZ publish
         }
         //*-*-*-*-*-*-*-*--*-*-*-*-*--*--*-*-*-*-*-*-*--*--*-*-*-*-*-*-*-*-*-*-*--*-*-*-*
     }
@@ -428,10 +577,14 @@ class SpeedRegulator2D
         y = 0;
     }
 
-    void set_sum_two_vectors_to_regulate(double x1, double &y1, double x2, double y2)
+    void set_sum_two_vectors_to_regulate_OVERRIDE(double &x1, double &y1, double &x2, double &y2)
     {
-        x_regulated += x1 + x2;
-        y_regulated += y1 + y2;
+        x_regulated = x1 + x2;
+        y_regulated = y1 + y2;
+        x1 = 0;
+        y1 = 0;
+        x2 = 0;
+        y2 = 0;
     }
 
     void regulate()
@@ -461,20 +614,33 @@ class SpeedRegulator2D
 
             else if (angles.yaw > 0 && angles.yaw < M_PI && regulator_mode == 1)
             {
-                ROS_ERROR_STREAM(std::endl << "Angle is correlating badly" << std::endl << "tan --> " << y_regulated/x_regulated << std::endl << "yaw --> " << angles.yaw * 180 / M_PI << " degrees." << std::endl);
+                // ROS_ERROR_STREAM(std::endl << "Angle is correlating badly" << std::endl << "tan --> " << y_regulated/x_regulated << std::endl << "yaw --> " << angles.yaw * 180 / M_PI << " degrees." << std::endl);
                 twist.angular.z = 0.4;
+                twist.linear.x = 0;
+                twist.linear.y = 0;
             }
 
             else if (angles.yaw < 0 && angles.yaw >= -M_PI && regulator_mode == 1)
             {
-                ROS_ERROR_STREAM(std::endl << "Angle is correlating badly" << std::endl << "tan --> " << y_regulated/x_regulated << std::endl << "yaw --> " << angles.yaw * 180 / M_PI << " degrees." << std::endl);
+                // ROS_ERROR_STREAM(std::endl << "Angle is correlating badly" << std::endl << "tan --> " << y_regulated/x_regulated << std::endl << "yaw --> " << angles.yaw * 180 / M_PI << " degrees." << std::endl);
                 twist.angular.z = -0.4;
+                twist.linear.x = 0;
+                twist.linear.y = 0;
+
             }
             else
             {
+                if(0)
+                {
+                    ROS_ERROR_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
+                    << "FUNCTION NAME: angle calc" << std::endl 
+                    << "VARIABLES: " << std::endl 
+                    << "angles.yaw (atan)-->" << angles.yaw << std::endl << "y_regulated/x_regulated --> " << y_regulated/x_regulated << std::endl << "y_regulated --> " << y_regulated << std::endl << "x_regulated --> " << x_regulated << std::endl << std::endl 
+                    << "_________________________________" << std::endl << "_________________________________" << std::endl);
+                }
                 //DEBUG INFO rerror
                 //****************************************************************************************************
-                if(1)
+                if(0)
                 {
                     ROS_ERROR_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
                     << "FUNCTION NAME: some shit is happening" << std::endl 
@@ -519,20 +685,42 @@ class SpeedRegulator2D
 
 PotentialFieldRepulsive *repulse_pointer;
 SpeedRegulator2D *regulator_pointer;
+PotentialFieldAttractive *attract_pointer;
+
+double *odom_x_pointer;
+double *odom_y_pointer;
+
 
 // PRESETUP 
 bool publish_rviz_vizualization = 1;
 int okcheck = 1;
 
+ros::Subscriber goal_sub;
+ros::Subscriber odom_sub;
+
 // SUB catchPC creation
 ros::Subscriber catchPC_sub;
 ros::Publisher Catched_Cloud_and_PF;// PUB declaration
 
+
 void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
 {
     repulse_pointer->calculate_repulse_vector(catchedCloud);
-    regulator_pointer->set_regulate_one_vector(repulse_pointer->finvec_x, repulse_pointer->finvec_y);
+    attract_pointer->calculate_attract_vector();
+    regulator_pointer->set_sum_two_vectors_to_regulate_OVERRIDE(repulse_pointer->finvec_x, repulse_pointer->finvec_y, attract_pointer->finvec_x, attract_pointer->finvec_y);
     regulator_pointer->regulate();
+}
+
+void got_goalCallback(const geometry_msgs::PoseStamped::ConstPtr& cacthed_goal)
+{
+    attract_pointer->goal_x = cacthed_goal->pose.position.x;
+    attract_pointer->goal_y = cacthed_goal->pose.position.y;
+}
+
+void got_odomCallback(const nav_msgs::Odometry::ConstPtr& catched_odom) 
+{
+    *odom_x_pointer = catched_odom->pose.pose.position.x;
+    *odom_y_pointer = catched_odom->pose.pose.position.y;
 }
 
 
@@ -541,16 +729,25 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "potential_fields");
 
     PotentialFieldRepulsive repulse;
+    PotentialFieldAttractive attract;
     SpeedRegulator2D regulator;
 
     repulse_pointer = &repulse;
     regulator_pointer = &regulator;
+    attract_pointer = &attract;
+
+    odom_x_pointer = &attract.odom_x;
+    odom_y_pointer = &attract.odom_y;
 
     // NODEHANDLE
     ros::NodeHandle cs;
+    ros::NodeHandle goal_nh;
+    ros::NodeHandle odom_get_nh;
 
     //PUB adverts
     catchPC_sub = cs.subscribe("/transPC", 10, got_scanCallback); // SUB catchPC sub
+    goal_sub = goal_nh.subscribe("/move_base_simple/goal", 1000, got_goalCallback);
+    odom_sub = odom_get_nh.subscribe("/odom", 1000, got_odomCallback);
 
     ros::spin();
 
