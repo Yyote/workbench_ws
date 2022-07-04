@@ -415,7 +415,7 @@ class PotentialFieldRepulsive {
         q = q.normalize(); //SOLVED something is going with angle. cant say what, maybe its not a bug ---> in velocity calculation there was an if statement that tried to pass only > 0.001 coordiantes. It totally deleted all negative values from coordinates
 
         // DEBUG INFO rinfo
-        if(1)
+        if(0)
         {
             ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
             << "FUNCTION NAME: angle calc" << std::endl 
@@ -454,7 +454,7 @@ class PotentialFieldAttractive
     EulerAngles angles;
     MarkerHandler final_vel_arrow;
     MarkerHandler goal;
-    int publish_rviz_vizualization;
+    int publish_rviz_visualization;
     double vector_length;
     // ros::NodeHandle debug_cloud_nh;
     // ros::Publisher attraction_vector_pub;
@@ -466,12 +466,13 @@ class PotentialFieldAttractive
     double goal_y; // Полученная у
     double finvec_x; // Рассчитанная точка
     double finvec_y; // Рассчитанная точка
+    int goal_is_new = 0;
 
     PotentialFieldAttractive()
     {
         C = 1;
         final_vel_arrow_topic = "/potential_field_ATTRACTION";
-        int publish_rviz_visualisation = 1;
+        publish_rviz_visualization = 1;
         goal_x = 0;
         goal_y = 0;
         finvec_x = 0;
@@ -482,11 +483,19 @@ class PotentialFieldAttractive
 
     void calculate_attract_vector()
     {   
-        goal_x = goal_x - odom_x;
-        goal_y = goal_y - odom_y;
-        vector_length = sqrt((goal_x * goal_x) + (goal_y + goal_y));
-        finvec_y = C * ((1 / vector_length) * goal_y / vector_length)/* - (maxRange / sqrt(2))*/; // BUG check atan limits and adjust the formula
-        finvec_x = C * ((1 / vector_length) * goal_x / vector_length)/* - (maxRange / sqrt(2))*/; // SOLVED change the formula for the pithagorean
+        if(goal_is_new)
+        {
+            double tmpvec_x = goal_x;
+            double tmpvec_y = goal_y;
+            tmpvec_x = tmpvec_x * sin()
+            tmpvec_y = 
+            goal_is_new = 0;
+        }
+
+
+        vector_length = sqrt((goal_x * goal_x) + (goal_y * goal_y));
+        finvec_y = C * ((vector_length) * goal_y / vector_length)/* - (maxRange / sqrt(2))*/; // BUG check atan limits and adjust the formula
+        finvec_x = C * ((vector_length) * goal_x / vector_length)/* - (maxRange / sqrt(2))*/; // SOLVED change the formula for the pithagorean
 
 
         angles.yaw = (atan(finvec_y/finvec_x)/* - (M_PI) * (finvec_x > 0)*/); //BUG no vector inversion
@@ -498,34 +507,36 @@ class PotentialFieldAttractive
         q.setRPY(angles.roll, angles.pitch, angles.yaw - (M_PI) * (finvec_x > 0));
         q = q.normalize(); //SOLVED something is going with angle. cant say what, maybe its not a bug ---> in velocity calculation there was an if statement that tried to pass only > 0.001 coordiantes. It totally deleted all negative values from coordinates
 
+        ROS_WARN_STREAM(std::endl << "angle is" << angles.yaw << std::endl);
+
         //*-*-*-*-*-*-*-*--*-*-*-*-*--*--*-*-*-*-*-*-*--*--*-*-*-*-*-*-*-*-*-*-*--*-*-*-*
         //------------------------------------------------------------------------------
         // VISUALIZATION //RVIZ visualiztion code // TODO make it a func
         //------------------------------------------------------------------------------
         final_vel_arrow.set_frame("laser"); //FRAME
-        final_vel_arrow.set_namespace("speeds_namespace2");
+        final_vel_arrow.set_namespace("speeds_namespace");
         final_vel_arrow.set_id(3);
         final_vel_arrow.set_type(0);
         final_vel_arrow.set_pose(0, 0, 0, q);
         final_vel_arrow.set_scale(-sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)), 0.05, 0.05);
         final_vel_arrow.set_color(1.0, 1.0, 0.0, 0.0);
-        final_vel_arrow.debug_info("Arrow");
+        // final_vel_arrow.debug_info("Arrow");
 
-        if(publish_rviz_vizualization == 1)
+        if(publish_rviz_visualization == 1)
         {
             final_vel_arrow.publish_marker(); // PUB //RVIZ publish
         }
 
-        goal.set_frame("laser"); //FRAME
-        goal.set_namespace("speeds_namespace3");
+        goal.set_frame("odom"); //FRAME
+        goal.set_namespace("speeds_namespace");
         goal.set_id(76);
         goal.set_type(2);
-        goal.set_pose(finvec_x, finvec_y, 0, q);
+        goal.set_pose(goal_x, goal_y, 0, q);
         goal.set_scale(0.05, 0.05, 0.05);
         goal.set_color(1.0, 1.0, 0.0, 0.0);
-        goal.debug_info("Goal");
+        // goal.debug_info("Goal");
 
-        if(publish_rviz_vizualization == 1)
+        if(publish_rviz_visualization == 1)
         {
             goal.publish_marker(); // PUB //RVIZ publish
         }
@@ -585,6 +596,14 @@ class SpeedRegulator2D
         y1 = 0;
         x2 = 0;
         y2 = 0;
+    }
+
+    void set_sum_two_vectors_to_regulate_HALFOVERRIDE(double &x1, double &y1, double x2, double y2)
+    {
+        x_regulated = x1 + x2;
+        y_regulated = y1 + y2;
+        x1 = 0;
+        y1 = 0;
     }
 
     void regulate()
@@ -687,8 +706,10 @@ PotentialFieldRepulsive *repulse_pointer;
 SpeedRegulator2D *regulator_pointer;
 PotentialFieldAttractive *attract_pointer;
 
-double *odom_x_pointer;
-double *odom_y_pointer;
+// double *odom_x_pointer;
+// double *odom_y_pointer;
+// double *odom_ang_z_pointer;
+nav_msgs::Odometry::Ptr *catched_odom_pointer; //LOG NEW перевести все формулы на новый метод использования пойманной одометрии
 
 
 // PRESETUP 
@@ -707,7 +728,8 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
 {
     repulse_pointer->calculate_repulse_vector(catchedCloud);
     attract_pointer->calculate_attract_vector();
-    regulator_pointer->set_sum_two_vectors_to_regulate_OVERRIDE(repulse_pointer->finvec_x, repulse_pointer->finvec_y, attract_pointer->finvec_x, attract_pointer->finvec_y);
+    // regulator_pointer->set_sum_two_vectors_to_regulate_HALFOVERRIDE(repulse_pointer->finvec_x, repulse_pointer->finvec_y, attract_pointer->finvec_x, attract_pointer->finvec_y);
+    regulator_pointer->set_regulate_one_vector_OVERRIDE(repulse_pointer->finvec_x, repulse_pointer->finvec_y);
     regulator_pointer->regulate();
 }
 
@@ -715,12 +737,12 @@ void got_goalCallback(const geometry_msgs::PoseStamped::ConstPtr& cacthed_goal)
 {
     attract_pointer->goal_x = cacthed_goal->pose.position.x;
     attract_pointer->goal_y = cacthed_goal->pose.position.y;
+    attract_pointer->goal_is_new = 1;
 }
 
 void got_odomCallback(const nav_msgs::Odometry::ConstPtr& catched_odom) 
 {
-    *odom_x_pointer = catched_odom->pose.pose.position.x;
-    *odom_y_pointer = catched_odom->pose.pose.position.y;
+    *catched_odom_pointer = catched_odom;
 }
 
 
