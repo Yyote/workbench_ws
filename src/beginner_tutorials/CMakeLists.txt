@@ -258,6 +258,10 @@ add_executable(oop src/oop.cpp)
 target_link_libraries(oop ${catkin_LIBRARIES})
 add_dependencies(oop beginner_tutorials_generate_messages_cpp)
 
+# add_executable(qtoeu src/qtoeu.cpp)
+# target_link_libraries(qtoeu ${catkin_LIBRARIES})
+# add_dependencies(qtoeu beginner_tutorials_generate_messages_cpp)
+
 catkin_install_python(PROGRAMS scripts/Node1.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

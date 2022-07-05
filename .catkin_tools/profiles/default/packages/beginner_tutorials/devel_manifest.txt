@@ -21,6 +21,7 @@ beginner_tutorials
 /home/leesirius/workbench_ws/devel/.private/beginner_tutorials/include/beginner_tutorials/VelocitiesScan.h /home/leesirius/workbench_ws/devel/include/beginner_tutorials/VelocitiesScan.h
 /home/leesirius/workbench_ws/devel/.private/beginner_tutorials/lib/beginner_tutorials/noviy_node /home/leesirius/workbench_ws/devel/lib/beginner_tutorials/noviy_node
 /home/leesirius/workbench_ws/devel/.private/beginner_tutorials/lib/beginner_tutorials/tf2_laser_static_to_base_footprint /home/leesirius/workbench_ws/devel/lib/beginner_tutorials/tf2_laser_static_to_base_footprint
+/home/leesirius/workbench_ws/devel/.private/beginner_tutorials/lib/beginner_tutorials/qtoeu /home/leesirius/workbench_ws/devel/lib/beginner_tutorials/qtoeu
 /home/leesirius/workbench_ws/devel/.private/beginner_tutorials/lib/beginner_tutorials/LidarFormattingRPLidar /home/leesirius/workbench_ws/devel/lib/beginner_tutorials/LidarFormattingRPLidar
 /home/leesirius/workbench_ws/devel/.private/beginner_tutorials/lib/beginner_tutorials/LPVCPointCloud /home/leesirius/workbench_ws/devel/lib/beginner_tutorials/LPVCPointCloud
 /home/leesirius/workbench_ws/devel/.private/beginner_tutorials/lib/beginner_tutorials/potential_fields /home/leesirius/workbench_ws/devel/lib/beginner_tutorials/potential_fields

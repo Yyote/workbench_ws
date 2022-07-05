@@ -11,6 +11,7 @@
 #include "nav_msgs/Odometry.h"
 #include "geometry_msgs/Quaternion.h"
 #include "geometry_msgs/PoseStamped.h"
+#include "tf2/LinearMath/Matrix3x3.h"
 #include "tf2/LinearMath/Quaternion.h"
 #include "visualization_msgs/Marker.h"
 #include "visualization_msgs/MarkerArray.h"
@@ -217,30 +218,19 @@ class MarkerHandler {
     }
 };
 
-    // potential_velocity_vector_marker.header.frame_id = "laser"; //FRAME
-    // potential_velocity_vector_marker.ns = "speeds_namespace";
-    // potential_velocity_vector_marker.id = 1;
-    // potential_velocity_vector_marker.type = visualization_msgs::Marker::ARROW;
-    // potential_velocity_vector_marker.action = visualization_msgs::Marker::ADD;
-    // potential_velocity_vector_marker.pose.position.x = 0.0;
-    // potential_velocity_vector_marker.pose.position.y = 0.0;
-    // potential_velocity_vector_marker.pose.position.z = 0.0;
-    // potential_velocity_vector_marker.pose.orientation.x = q.x();
-    // potential_velocity_vector_marker.pose.orientation.y = q.y();
-    // potential_velocity_vector_marker.pose.orientation.z = q.z();
-    // potential_velocity_vector_marker.pose.orientation.w = q.w();
-    // potential_velocity_vector_marker.scale.x = -sqrt(pow(finvec_x, 2) + pow(finvec_y, 2));
-    // potential_velocity_vector_marker.scale.y = 0.05;
-    // potential_velocity_vector_marker.scale.z = 0.05;
-    // potential_velocity_vector_marker.color.a = 1.0;
-    // potential_velocity_vector_marker.color.r = 0.0;
-    // potential_velocity_vector_marker.color.g = 1.0;
-    // potential_velocity_vector_marker.color.b = 0.0;
+
 class EulerAngles {
     public:
-    float roll;
-    float pitch;
-    float yaw;
+    EulerAngles()
+    {
+        roll = 0;
+        pitch = 0;
+        yaw = 0;
+    }
+
+    double roll;
+    double pitch;
+    double yaw;
 };
 
 class PotentialFieldRepulsive {
@@ -456,12 +446,13 @@ class PotentialFieldAttractive
     MarkerHandler goal;
     int publish_rviz_visualization;
     double vector_length;
+    double tmpvec_x = 0;
+    double tmpvec_y = 0;
     // ros::NodeHandle debug_cloud_nh;
     // ros::Publisher attraction_vector_pub;
 
     public:
-    double odom_x;
-    double odom_y;
+    nav_msgs::Odometry odom;
     double goal_x; // Полученная координата х
     double goal_y; // Полученная у
     double finvec_x; // Рассчитанная точка
@@ -483,29 +474,52 @@ class PotentialFieldAttractive
 
     void calculate_attract_vector()
     {   
+        tf2::Quaternion q(odom.pose.pose.orientation.x, odom.pose.pose.orientation.y, odom.pose.pose.orientation.z, odom.pose.pose.orientation.w);
+        
+        tf2::Matrix3x3 m(q);
+        m.getRPY(angles.roll, angles.pitch, angles.yaw);
+
+
+
         if(goal_is_new)
         {
-            double tmpvec_x = goal_x;
-            double tmpvec_y = goal_y;
-            tmpvec_x = tmpvec_x * sin()
-            tmpvec_y = 
+            tmpvec_x = goal_x /*- odom.pose.pose.position.x * (goal_is_new)*/; // LINK OUT id12-031-23 get parameter
+            tmpvec_y = goal_y /*- odom.pose.pose.position.y * (goal_is_new)*/; // LINK OUT id12-031-23 get parameter
+
+            tmpvec_x = tmpvec_x - odom.pose.pose.position.x;
+            tmpvec_y = tmpvec_y - odom.pose.pose.position.y;
+            
+            odom.pose.pose.position.x = 0;Zxdxzvffcas
+            odom.pose.pose.position.y = 0;
+
             goal_is_new = 0;
         }
 
+        // tmpvec_x = tmpvec_x * cos(angles.yaw) - tmpvec_y * sin(angles.yaw);
+        // tmpvec_y = tmpvec_x * sin(angles.yaw) + tmpvec_y * cos(angles.yaw);
 
-        vector_length = sqrt((goal_x * goal_x) + (goal_y * goal_y));
-        finvec_y = C * ((vector_length) * goal_y / vector_length)/* - (maxRange / sqrt(2))*/; // BUG check atan limits and adjust the formula
-        finvec_x = C * ((vector_length) * goal_x / vector_length)/* - (maxRange / sqrt(2))*/; // SOLVED change the formula for the pithagorean
+        // // tmpvec_x = tmpvec_x + odom.pose.pose.position.x; 
+        // // tmpvec_y = tmpvec_y + odom.pose.pose.position.y; 
+
+        // vector_length = sqrt((tmpvec_x * tmpvec_x) + (tmpvec_y * tmpvec_y));
+
+        // finvec_y = C * (1 / (vector_length) * (tmpvec_y / vector_length))/* - (maxRange / sqrt(2))*/; // BUG check atan limits and adjust the formula
+        // finvec_x = C * (1 / (vector_length) * (tmpvec_x / vector_length))/* - (maxRange / sqrt(2))*/; // SOLVED change the formula for the pithagorean
 
 
-        angles.yaw = (atan(finvec_y/finvec_x)/* - (M_PI) * (finvec_x > 0)*/); //BUG no vector inversion
-        angles.yaw = (angles.yaw + 2 * M_PI) * (angles.yaw < - M_PI) + (angles.yaw) * (!(angles.yaw < - M_PI));
+        // angles.yaw = (atan(finvec_y / finvec_x)/* - (M_PI) * (finvec_x > 0)*/); //BUG no vector inversion
+        // // angles.yaw = (angles.yaw + 2 * M_PI) * (angles.yaw < - M_PI) + (angles.yaw) * (!(angles.yaw < - M_PI));
+        // angles.yaw = M_PI;
 
-        tf2::Quaternion q;
+finvec_x = tmpvec_x;
+finvec_y = tmpvec_y;
+
+        tf2::Quaternion q1;
 
         //IDEA make a bullshit filter for potential fields and create max passed speed constant
-        q.setRPY(angles.roll, angles.pitch, angles.yaw - (M_PI) * (finvec_x > 0));
-        q = q.normalize(); //SOLVED something is going with angle. cant say what, maybe its not a bug ---> in velocity calculation there was an if statement that tried to pass only > 0.001 coordiantes. It totally deleted all negative values from coordinates
+        // q1.setRPY(angles.roll, angles.pitch, angles.yaw - (M_PI) * (finvec_x > 0));
+        q1.setRPY(0, 0, 0);
+        q1 = q1.normalize(); //SOLVED something is going with angle. cant say what, maybe its not a bug ---> in velocity calculation there was an if statement that tried to pass only > 0.001 coordiantes. It totally deleted all negative values from coordinates
 
         ROS_WARN_STREAM(std::endl << "angle is" << angles.yaw << std::endl);
 
@@ -515,23 +529,26 @@ class PotentialFieldAttractive
         //------------------------------------------------------------------------------
         final_vel_arrow.set_frame("laser"); //FRAME
         final_vel_arrow.set_namespace("speeds_namespace");
-        final_vel_arrow.set_id(3);
-        final_vel_arrow.set_type(0);
-        final_vel_arrow.set_pose(0, 0, 0, q);
-        final_vel_arrow.set_scale(-sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)), 0.05, 0.05);
+        final_vel_arrow.set_id(34);
+        // final_vel_arrow.set_type(0);
+        final_vel_arrow.set_type(1);
+        // final_vel_arrow.set_pose(odom.pose.pose.position.x, odom.pose.pose.position.y, odom.pose.pose.position.z, q1);
+        final_vel_arrow.set_pose(finvec_x, finvec_y, 0, q1);
+        // final_vel_arrow.set_scale(-sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)), 0.05, 0.05);
+        final_vel_arrow.set_scale(0.2, 0.2, 0.2);
         final_vel_arrow.set_color(1.0, 1.0, 0.0, 0.0);
-        // final_vel_arrow.debug_info("Arrow");
+        // // final_vel_arrow.debug_info("Arrow");
 
         if(publish_rviz_visualization == 1)
         {
             final_vel_arrow.publish_marker(); // PUB //RVIZ publish
         }
 
-        goal.set_frame("odom"); //FRAME
+        goal.set_frame("laser"); //FRAME
         goal.set_namespace("speeds_namespace");
         goal.set_id(76);
         goal.set_type(2);
-        goal.set_pose(goal_x, goal_y, 0, q);
+        goal.set_pose(goal_x, goal_y, 0, q1);
         goal.set_scale(0.05, 0.05, 0.05);
         goal.set_color(1.0, 1.0, 0.0, 0.0);
         // goal.debug_info("Goal");
@@ -709,7 +726,7 @@ PotentialFieldAttractive *attract_pointer;
 // double *odom_x_pointer;
 // double *odom_y_pointer;
 // double *odom_ang_z_pointer;
-nav_msgs::Odometry::Ptr *catched_odom_pointer; //LOG NEW перевести все формулы на новый метод использования пойманной одометрии
+nav_msgs::Odometry *attract_odom_pointer; //LOG NEW перевести все формулы на новый метод использования пойманной одометрии
 
 
 // PRESETUP 
@@ -733,6 +750,7 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
     regulator_pointer->regulate();
 }
 
+
 void got_goalCallback(const geometry_msgs::PoseStamped::ConstPtr& cacthed_goal)
 {
     attract_pointer->goal_x = cacthed_goal->pose.position.x;
@@ -740,9 +758,15 @@ void got_goalCallback(const geometry_msgs::PoseStamped::ConstPtr& cacthed_goal)
     attract_pointer->goal_is_new = 1;
 }
 
+
 void got_odomCallback(const nav_msgs::Odometry::ConstPtr& catched_odom) 
 {
-    *catched_odom_pointer = catched_odom;
+    attract_odom_pointer->pose.pose.position.x = catched_odom->pose.pose.position.x; // LINK IN id12-031-23 get parameter
+    attract_odom_pointer->pose.pose.position.y = catched_odom->pose.pose.position.y; // LINK IN id12-031-23 get parameter 
+    attract_odom_pointer->pose.pose.orientation.w = catched_odom->pose.pose.orientation.w;
+    attract_odom_pointer->pose.pose.orientation.x = catched_odom->pose.pose.orientation.x;
+    attract_odom_pointer->pose.pose.orientation.y = catched_odom->pose.pose.orientation.y;
+    attract_odom_pointer->pose.pose.orientation.z = catched_odom->pose.pose.orientation.z;
 }
 
 
@@ -758,8 +782,7 @@ int main(int argc, char **argv)
     regulator_pointer = &regulator;
     attract_pointer = &attract;
 
-    odom_x_pointer = &attract.odom_x;
-    odom_y_pointer = &attract.odom_y;
+    attract_odom_pointer = &attract.odom;
 
     // NODEHANDLE
     ros::NodeHandle cs;
