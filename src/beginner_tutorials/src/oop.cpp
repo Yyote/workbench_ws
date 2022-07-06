@@ -489,7 +489,7 @@ class PotentialFieldAttractive
             tmpvec_x = tmpvec_x - odom.pose.pose.position.x;
             tmpvec_y = tmpvec_y - odom.pose.pose.position.y;
             
-            odom.pose.pose.position.x = 0;Zxdxzvffcas
+            odom.pose.pose.position.x = 0;
             odom.pose.pose.position.y = 0;
 
             goal_is_new = 0;

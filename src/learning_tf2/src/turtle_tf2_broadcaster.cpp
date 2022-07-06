@@ -1,49 +1,51 @@
 #include <ros/ros.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_broadcaster.h>
-#include <tf/tf.h>
 #include <geometry_msgs/TransformStamped.h>
-#include <nav_msgs/Odometry.h>
+#include <turtlesim/Pose.h>
 
-void poseCallback(const nav_msgs::OdometryPtr& odom){
-  static tf2_ros::TransformBroadcaster br;
-  geometry_msgs::TransformStamped transformStamped;
-  
-  transformStamped.header.stamp = ros::Time::now();
-  transformStamped.header.frame_id = "base_footprint";
-  transformStamped.child_frame_id = "laser";
-  transformStamped.transform.translation.x = 0;
-  transformStamped.transform.translation.y = 0;
-  transformStamped.transform.translation.z = 0;
+std::string turtle_name;
 
-  tf2::Quaternion q;
-  q.setX(odom->pose.pose.orientation.x);
-  q.setY(odom->pose.pose.orientation.y);
-  q.setZ(odom->pose.pose.orientation.z);
-  q.setW(odom->pose.pose.orientation.w);
-
-  tf2::Quaternion qworld;
-  qworld.setX(0);
-  qworld.setY(0);
-  qworld.setZ(0);
-  qworld.setW(-1);
-
-  tf2::Quaternion qrotation;
-  qrotation = q * qworld;
-
-  transformStamped.transform.rotation.x = qrotation.x();
-  transformStamped.transform.rotation.y = qrotation.y();
-  transformStamped.transform.rotation.z = qrotation.z();
-  transformStamped.transform.rotation.w = qrotation.w();
-
-  br.sendTransform(transformStamped);
+void poseCallback(const turtlesim::PoseConstPtr& msg)
+{
+    static tf2_ros::TransformBroadcaster br;
+    geometry_msgs::TransformStamped transformStamped;
+    
+    transformStamped.header.stamp = ros::Time::now();
+    transformStamped.header.frame_id = "world";
+    transformStamped.child_frame_id = turtle_name;
+    transformStamped.transform.translation.x = msg->x;
+    transformStamped.transform.translation.y = msg->y;
+    transformStamped.transform.translation.z = 0.0;
+    tf2::Quaternion q;
+    q.setRPY(0, 0, msg->theta);
+    transformStamped.transform.rotation.x = q.x();
+    transformStamped.transform.rotation.y = q.y();
+    transformStamped.transform.rotation.z = q.z();
+    transformStamped.transform.rotation.w = q.w();
+    
+    br.sendTransform(transformStamped);
 }
 
-int main(int argc, char** argv){
-  ros::init(argc, argv, "my_tf2_broadcaster");    
-  ros::NodeHandle node;
-  ros::Subscriber sub = node.subscribe("/odom", 10, &poseCallback);
+int main(int argc, char** argv)
+{
+    ros::init(argc, argv, "my_tf2_broadcaster");
 
-  ros::spin();
-  return 0;
+    ros::NodeHandle private_node("~");
+    
+    if (! private_node.hasParam("turtle"))
+    {
+        if (argc != 2){ROS_ERROR("need turtle name as argument"); return -1;};
+        turtle_name = argv[1];
+    }
+    else
+    {
+        private_node.getParam("turtle", turtle_name);
+    }
+    
+    ros::NodeHandle node;
+    ros::Subscriber sub = node.subscribe(turtle_name+"/pose", 10, &poseCallback);
+
+    ros::spin();
+    return 0;
 };
