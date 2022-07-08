@@ -463,10 +463,6 @@ class PotentialFieldAttractive
         geometry_msgs::TransformStamped transformStamped;
 
 
-        ros::Rate rate(10.0);
-        while (ros::ok())
-        {
-
             try
             {
                 transformStamped = tfBuffer.lookupTransform("laser", "nav_goal_frame",
@@ -477,9 +473,7 @@ class PotentialFieldAttractive
             {
                 ROS_WARN("%s",ex.what());
                 ros::Duration(1.0).sleep();
-                continue;
             }
-        }
 
         goal_x = transformStamped.transform.translation.x;
         goal_y = transformStamped.transform.translation.y;
@@ -778,7 +772,7 @@ void got_goalCallback(const geometry_msgs::PoseStamped::ConstPtr& catched_goal)
 {
     // attract_pointer->goal_x = cacthed_goal->pose.position.x;
     // attract_pointer->goal_y = cacthed_goal->pose.position.y; // RETHINK
-    // attract_pointer->goal_is_new = 1;
+    attract_pointer->goal_is_new = 1;
 
     static tf2_ros::TransformBroadcaster nav_goal_Fbroadcaster; // Создание объекта транслятора трансформаций
     geometry_msgs::TransformStamped transformStamped; // Создание объекта трансформации
