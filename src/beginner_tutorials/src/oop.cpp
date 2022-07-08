@@ -16,6 +16,11 @@
 #include "visualization_msgs/Marker.h"
 #include "visualization_msgs/MarkerArray.h"
 #include "geometry_msgs/Twist.h"
+#include "geometry_msgs/TransformStamped.h"
+#include "tf2_ros/transform_broadcaster.h"
+#include "tf2_ros/buffer.h"
+#include "tf2_ros/transform_listener.h"
+#include "tf2/exceptions.h"
 #include <cmath>
 
 
@@ -451,6 +456,35 @@ class PotentialFieldAttractive
     // ros::NodeHandle debug_cloud_nh;
     // ros::Publisher attraction_vector_pub;
 
+    void seek_for_goal()
+    {
+        tf2_ros::Buffer tfBuffer;
+        tf2_ros::TransformListener tfListener(tfBuffer);
+        geometry_msgs::TransformStamped transformStamped;
+
+
+        ros::Rate rate(10.0);
+        while (ros::ok())
+        {
+
+            try
+            {
+                transformStamped = tfBuffer.lookupTransform("laser", "nav_goal_frame",
+                ros::Time(0));
+            }
+
+            catch (tf2::TransformException &ex) 
+            {
+                ROS_WARN("%s",ex.what());
+                ros::Duration(1.0).sleep();
+                continue;
+            }
+        }
+
+        goal_x = transformStamped.transform.translation.x;
+        goal_y = transformStamped.transform.translation.y;
+    }
+
     public:
     nav_msgs::Odometry odom;
     double goal_x; // Полученная координата х
@@ -479,21 +513,10 @@ class PotentialFieldAttractive
         tf2::Matrix3x3 m(q);
         m.getRPY(angles.roll, angles.pitch, angles.yaw);
 
+        seek_for_goal();
 
-
-        if(goal_is_new)
-        {
-            tmpvec_x = goal_x /*- odom.pose.pose.position.x * (goal_is_new)*/; // LINK OUT id12-031-23 get parameter
-            tmpvec_y = goal_y /*- odom.pose.pose.position.y * (goal_is_new)*/; // LINK OUT id12-031-23 get parameter
-
-            tmpvec_x = tmpvec_x - odom.pose.pose.position.x;
-            tmpvec_y = tmpvec_y - odom.pose.pose.position.y;
-            
-            odom.pose.pose.position.x = 0;
-            odom.pose.pose.position.y = 0;
-
-            goal_is_new = 0;
-        }
+        tmpvec_x = goal_x;
+        tmpvec_y = goal_y;
 
         // tmpvec_x = tmpvec_x * cos(angles.yaw) - tmpvec_y * sin(angles.yaw);
         // tmpvec_y = tmpvec_x * sin(angles.yaw) + tmpvec_y * cos(angles.yaw);
@@ -726,8 +749,8 @@ PotentialFieldAttractive *attract_pointer;
 // double *odom_x_pointer;
 // double *odom_y_pointer;
 // double *odom_ang_z_pointer;
-nav_msgs::Odometry *attract_odom_pointer; //LOG NEW перевести все формулы на новый метод использования пойманной одометрии
-
+// nav_msgs::Odometry *attract_odom_pointer; //LOG NEW перевести все формулы на новый метод использования пойманной одометрии
+// RETHINK
 
 // PRESETUP 
 bool publish_rviz_vizualization = 1;
@@ -751,23 +774,39 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
 }
 
 
-void got_goalCallback(const geometry_msgs::PoseStamped::ConstPtr& cacthed_goal)
+void got_goalCallback(const geometry_msgs::PoseStamped::ConstPtr& catched_goal)
 {
-    attract_pointer->goal_x = cacthed_goal->pose.position.x;
-    attract_pointer->goal_y = cacthed_goal->pose.position.y;
-    attract_pointer->goal_is_new = 1;
+    // attract_pointer->goal_x = cacthed_goal->pose.position.x;
+    // attract_pointer->goal_y = cacthed_goal->pose.position.y; // RETHINK
+    // attract_pointer->goal_is_new = 1;
+
+    static tf2_ros::TransformBroadcaster nav_goal_Fbroadcaster; // Создание объекта транслятора трансформаций
+    geometry_msgs::TransformStamped transformStamped; // Создание объекта трансформации
+
+    transformStamped.header.stamp = ros::Time::now();
+    transformStamped.header.frame_id = "odom"; // задается фрейм-отец
+    transformStamped.child_frame_id = "nav_goal_frame"; // задается фрейм-ребенок
+    transformStamped.transform.translation.x = catched_goal->pose.position.x; // Задаются координаты смещения нового фрейма относительно фрейма-отца
+    transformStamped.transform.translation.y = catched_goal->pose.position.y;
+    transformStamped.transform.translation.z = 0.0;
+    tf2::Quaternion q(catched_goal->pose.orientation.x, catched_goal->pose.orientation.y, catched_goal->pose.orientation.z, catched_goal->pose.orientation.w); // Задается поворот(в кватернионе) фрейма-ребенка относительно фрейма-отца
+    transformStamped.transform.rotation.x = q.x();
+    transformStamped.transform.rotation.y = q.y();
+    transformStamped.transform.rotation.z = q.z();
+    transformStamped.transform.rotation.w = q.w();
+    nav_goal_Fbroadcaster.sendTransform(transformStamped); // Трансформация отправляется
 }
 
 
-void got_odomCallback(const nav_msgs::Odometry::ConstPtr& catched_odom) 
-{
-    attract_odom_pointer->pose.pose.position.x = catched_odom->pose.pose.position.x; // LINK IN id12-031-23 get parameter
-    attract_odom_pointer->pose.pose.position.y = catched_odom->pose.pose.position.y; // LINK IN id12-031-23 get parameter 
-    attract_odom_pointer->pose.pose.orientation.w = catched_odom->pose.pose.orientation.w;
-    attract_odom_pointer->pose.pose.orientation.x = catched_odom->pose.pose.orientation.x;
-    attract_odom_pointer->pose.pose.orientation.y = catched_odom->pose.pose.orientation.y;
-    attract_odom_pointer->pose.pose.orientation.z = catched_odom->pose.pose.orientation.z;
-}
+// void got_odomCallback(const nav_msgs::Odometry::ConstPtr& catched_odom) 
+// {
+//     attract_odom_pointer->pose.pose.position.x = catched_odom->pose.pose.position.x; // LINK IN id12-031-23 get parameter
+//     attract_odom_pointer->pose.pose.position.y = catched_odom->pose.pose.position.y; // LINK IN id12-031-23 get parameter 
+//     attract_odom_pointer->pose.pose.orientation.w = catched_odom->pose.pose.orientation.w;
+//     attract_odom_pointer->pose.pose.orientation.x = catched_odom->pose.pose.orientation.x;
+//     attract_odom_pointer->pose.pose.orientation.y = catched_odom->pose.pose.orientation.y;
+//     attract_odom_pointer->pose.pose.orientation.z = catched_odom->pose.pose.orientation.z; 
+// } // RETHINK
 
 
 int main(int argc, char **argv)
@@ -782,7 +821,7 @@ int main(int argc, char **argv)
     regulator_pointer = &regulator;
     attract_pointer = &attract;
 
-    attract_odom_pointer = &attract.odom;
+    // attract_odom_pointer = &attract.odom;
 
     // NODEHANDLE
     ros::NodeHandle cs;
@@ -792,7 +831,7 @@ int main(int argc, char **argv)
     //PUB adverts
     catchPC_sub = cs.subscribe("/transPC", 10, got_scanCallback); // SUB catchPC sub
     goal_sub = goal_nh.subscribe("/move_base_simple/goal", 1000, got_goalCallback);
-    odom_sub = odom_get_nh.subscribe("/odom", 1000, got_odomCallback);
+    // odom_sub = odom_get_nh.subscribe("/odom", 1000, got_odomCallback);
 
     ros::spin();
 
