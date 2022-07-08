@@ -334,7 +334,7 @@ class PotentialFieldRepulsive {
 
                     //DEBUG INFO rwarn
                     //****************************************************************************************************
-                    if(1)
+                    if(0)
                     {
                         ROS_WARN_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
                         << "FUNCTION NAME: tmpvec_y check" << std::endl 
@@ -430,7 +430,7 @@ class PotentialFieldRepulsive {
         final_vel_arrow.set_pose(0, 0, 0, q);
         final_vel_arrow.set_scale(-sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)), 0.05, 0.05);
         final_vel_arrow.set_color(1.0, 0.0, 1.0, 0.0);
-        final_vel_arrow.debug_info("Стрелочка");
+        // final_vel_arrow.debug_info("Стрелочка");
 
         if(publish_rviz_vizualization == 1)
         {
@@ -447,53 +447,79 @@ class PotentialFieldAttractive
     double C;
     std::string final_vel_arrow_topic;
     EulerAngles angles;
-    MarkerHandler final_vel_arrow;
-    MarkerHandler goal;
-    int publish_rviz_visualization;
     double vector_length;
     double tmpvec_x = 0;
     double tmpvec_y = 0;
     // ros::NodeHandle debug_cloud_nh;
     // ros::Publisher attraction_vector_pub;
 
+    // tf2_ros::Buffer tfBuffer;
+    // tf2_ros::TransformListener real_tfListener(tfBuffer);
+    // geometry_msgs::TransformStamped real_transformStamped2;
+
     void seek_for_goal()
     {
-        tf2_ros::Buffer tfBuffer;
-        tf2_ros::TransformListener tfListener(tfBuffer);
-        geometry_msgs::TransformStamped transformStamped;
+        // tf2_ros::Buffer tfBuffer;
+        // tf2_ros::TransformListener tfListener(tfBuffer);
+        // geometry_msgs::TransformStamped transformStamped;
 
+        // // ros::Rate rate(10.0);
+        // // while(ros::ok())
+        // // {
+        //     try
+        //     {
+        //         transformStamped = tfBuffer.lookupTransform("base_link", "nav_goal_frame",
+        //         ros::Time(0));
+        //     }
 
-            try
-            {
-                transformStamped = tfBuffer.lookupTransform("laser", "nav_goal_frame",
-                ros::Time(0));
-            }
+        //     catch (tf2::TransformException &ex) 
+        //     {
+        //         ROS_WARN("%s",ex.what());
+        //         ros::Duration(1.0).sleep();
+        //     }
+        //     if (goal_is_new == 1)
+        //     {
+        //         goal_x = transformStamped.transform.translation.x;
+        //         goal_y = transformStamped.transform.translation.y;
+        //         goal_is_new = 0;
+        //     }
+        //             //DEBUG rinfo
+        //     //****************************************************************************************************
+        //     if(1)
+        //     {
+        //         ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
+        //         << "FUNCTION NAME: check translation" << std::endl 
+        //         << "VARIABLES: "<< std::endl 
+        //         << "trans x -->" << transformStamped.transform.translation.x << std::endl 
+        //         << "trans y -->" << transformStamped.transform.translation.y << std::endl 
+        //         << "goal x -->" << goal_x << std::endl 
+        //         << "goal y -->" << goal_y << std::endl 
+        //         << "_________________________________" << std::endl << "_________________________________" << std::endl);
+        //     }
+        //     //****************************************************************************************************
+        // // }
 
-            catch (tf2::TransformException &ex) 
-            {
-                ROS_WARN("%s",ex.what());
-                ros::Duration(1.0).sleep();
-            }
-
-        goal_x = transformStamped.transform.translation.x;
-        goal_y = transformStamped.transform.translation.y;
     }
 
     public:
     nav_msgs::Odometry odom;
-    double goal_x; // Полученная координата х
-    double goal_y; // Полученная у
+    double goal_x /*= 0*/; // Полученная координата х
+    double goal_y /*= 0*/; // Полученная у
     double finvec_x; // Рассчитанная точка
     double finvec_y; // Рассчитанная точка
     int goal_is_new = 0;
+    int publish_rviz_visualization;
+    MarkerHandler final_vel_arrow;
+    MarkerHandler goal;
 
     PotentialFieldAttractive()
     {
-        C = 1;
-        final_vel_arrow_topic = "/potential_field_ATTRACTION";
-        publish_rviz_visualization = 1;
-        goal_x = 0;
-        goal_y = 0;
+        C = 1;   
+        // tf2_ros::Buffer tfBuffer;  
+        // tf2_ros::TransformListener tfListener(tfBuffer);
+        // geometry_msgs::TransformStamped transformStamped;
+        // goal_x = 0;
+        // goal_y = 0;
         finvec_x = 0;
         finvec_y = 0;
         final_vel_arrow.advertise_to_topic(final_vel_arrow_topic);
@@ -507,7 +533,7 @@ class PotentialFieldAttractive
         tf2::Matrix3x3 m(q);
         m.getRPY(angles.roll, angles.pitch, angles.yaw);
 
-        seek_for_goal();
+        // seek_for_goal();
 
         tmpvec_x = goal_x;
         tmpvec_y = goal_y;
@@ -518,25 +544,18 @@ class PotentialFieldAttractive
         // // tmpvec_x = tmpvec_x + odom.pose.pose.position.x; 
         // // tmpvec_y = tmpvec_y + odom.pose.pose.position.y; 
 
-        // vector_length = sqrt((tmpvec_x * tmpvec_x) + (tmpvec_y * tmpvec_y));
+        vector_length = sqrt((tmpvec_x * tmpvec_x) + (tmpvec_y * tmpvec_y));
 
-        // finvec_y = C * (1 / (vector_length) * (tmpvec_y / vector_length))/* - (maxRange / sqrt(2))*/; // BUG check atan limits and adjust the formula
-        // finvec_x = C * (1 / (vector_length) * (tmpvec_x / vector_length))/* - (maxRange / sqrt(2))*/; // SOLVED change the formula for the pithagorean
+        finvec_y = C * (1 / (vector_length) * (tmpvec_y / vector_length))/* - (maxRange / sqrt(2))*/; // BUG check atan limits and adjust the formula
+        finvec_x = C * (1 / (vector_length) * (tmpvec_x / vector_length))/* - (maxRange / sqrt(2))*/; // SOLVED change the formula for the pithagorean
 
 
         // angles.yaw = (atan(finvec_y / finvec_x)/* - (M_PI) * (finvec_x > 0)*/); //BUG no vector inversion
         // // angles.yaw = (angles.yaw + 2 * M_PI) * (angles.yaw < - M_PI) + (angles.yaw) * (!(angles.yaw < - M_PI));
         // angles.yaw = M_PI;
 
-finvec_x = tmpvec_x;
-finvec_y = tmpvec_y;
-
-        tf2::Quaternion q1;
-
-        //IDEA make a bullshit filter for potential fields and create max passed speed constant
-        // q1.setRPY(angles.roll, angles.pitch, angles.yaw - (M_PI) * (finvec_x > 0));
-        q1.setRPY(0, 0, 0);
-        q1 = q1.normalize(); //SOLVED something is going with angle. cant say what, maybe its not a bug ---> in velocity calculation there was an if statement that tried to pass only > 0.001 coordiantes. It totally deleted all negative values from coordinates
+        finvec_x = tmpvec_x;
+        finvec_y = tmpvec_y;
 
         ROS_WARN_STREAM(std::endl << "angle is" << angles.yaw << std::endl);
 
@@ -550,16 +569,23 @@ finvec_y = tmpvec_y;
         // final_vel_arrow.set_type(0);
         final_vel_arrow.set_type(1);
         // final_vel_arrow.set_pose(odom.pose.pose.position.x, odom.pose.pose.position.y, odom.pose.pose.position.z, q1);
-        final_vel_arrow.set_pose(finvec_x, finvec_y, 0, q1);
+        final_vel_arrow.set_pose(finvec_x, finvec_y, 0, q);
         // final_vel_arrow.set_scale(-sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)), 0.05, 0.05);
         final_vel_arrow.set_scale(0.2, 0.2, 0.2);
         final_vel_arrow.set_color(1.0, 1.0, 0.0, 0.0);
-        // // final_vel_arrow.debug_info("Arrow");
+        // final_vel_arrow.debug_info("Arrow");
 
         if(publish_rviz_visualization == 1)
         {
             final_vel_arrow.publish_marker(); // PUB //RVIZ publish
         }
+
+        tf2::Quaternion q1;
+
+        //IDEA make a bullshit filter for potential fields and create max passed speed constant
+        // q1.setRPY(angles.roll, angles.pitch, angles.yaw - (M_PI) * (finvec_x > 0));
+        q1.setRPY(0, 0, 0);
+        q1 = q1.normalize(); //SOLVED something is going with angle. cant say what, maybe its not a bug ---> in velocity calculation there was an if statement that tried to pass only > 0.001 coordiantes. It totally deleted all negative values from coordinates
 
         goal.set_frame("laser"); //FRAME
         goal.set_namespace("speeds_namespace");
@@ -574,6 +600,7 @@ finvec_y = tmpvec_y;
         {
             goal.publish_marker(); // PUB //RVIZ publish
         }
+
         //*-*-*-*-*-*-*-*--*-*-*-*-*--*--*-*-*-*-*-*-*--*--*-*-*-*-*-*-*-*-*-*-*--*-*-*-*
     }
 };
@@ -740,6 +767,13 @@ PotentialFieldRepulsive *repulse_pointer;
 SpeedRegulator2D *regulator_pointer;
 PotentialFieldAttractive *attract_pointer;
 
+// static tf2_ros::TransformBroadcaster *nav_goal_Fbroadcaster; // Создание объекта транслятора трансформаций
+// geometry_msgs::TransformStamped *transformStamped; // Создание объекта трансформации
+
+// tf2_ros::Buffer *tfBuffer;
+// tf2_ros::TransformListener *tfListener;
+// geometry_msgs::TransformStamped *transformStamped2;
+
 // double *odom_x_pointer;
 // double *odom_y_pointer;
 // double *odom_ang_z_pointer;
@@ -768,27 +802,28 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
 }
 
 
+
 void got_goalCallback(const geometry_msgs::PoseStamped::ConstPtr& catched_goal)
 {
-    // attract_pointer->goal_x = cacthed_goal->pose.position.x;
-    // attract_pointer->goal_y = cacthed_goal->pose.position.y; // RETHINK
-    attract_pointer->goal_is_new = 1;
+    // // attract_pointer->goal_x = cacthed_goal->pose.position.x;
+    // // attract_pointer->goal_y = cacthed_goal->pose.position.y; // RETHINK
+    // attract_pointer->goal_is_new = 1;
 
-    static tf2_ros::TransformBroadcaster nav_goal_Fbroadcaster; // Создание объекта транслятора трансформаций
-    geometry_msgs::TransformStamped transformStamped; // Создание объекта трансформации
+    // static tf2_ros::TransformBroadcaster nav_goal_Fbroadcaster; // Создание объекта транслятора трансформаций
+    // geometry_msgs::TransformStamped transformStamped; // Создание объекта трансформации
 
-    transformStamped.header.stamp = ros::Time::now();
-    transformStamped.header.frame_id = "odom"; // задается фрейм-отец
-    transformStamped.child_frame_id = "nav_goal_frame"; // задается фрейм-ребенок
-    transformStamped.transform.translation.x = catched_goal->pose.position.x; // Задаются координаты смещения нового фрейма относительно фрейма-отца
-    transformStamped.transform.translation.y = catched_goal->pose.position.y;
-    transformStamped.transform.translation.z = 0.0;
-    tf2::Quaternion q(catched_goal->pose.orientation.x, catched_goal->pose.orientation.y, catched_goal->pose.orientation.z, catched_goal->pose.orientation.w); // Задается поворот(в кватернионе) фрейма-ребенка относительно фрейма-отца
-    transformStamped.transform.rotation.x = q.x();
-    transformStamped.transform.rotation.y = q.y();
-    transformStamped.transform.rotation.z = q.z();
-    transformStamped.transform.rotation.w = q.w();
-    nav_goal_Fbroadcaster.sendTransform(transformStamped); // Трансформация отправляется
+    // transformStamped.header.stamp = ros::Time::now();
+    // transformStamped.header.frame_id = "odom"; // задается фрейм-отец
+    // transformStamped.child_frame_id = "nav_goal_frame"; // задается фрейм-ребенок
+    // transformStamped.transform.translation.x = catched_goal->pose.position.x; // Задаются координаты смещения нового фрейма относительно фрейма-отца
+    // transformStamped.transform.translation.y = catched_goal->pose.position.y;
+    // transformStamped.transform.translation.z = 0.0;
+    // tf2::Quaternion quat_nav_goal(catched_goal->pose.orientation.x, catched_goal->pose.orientation.y, catched_goal->pose.orientation.z, catched_goal->pose.orientation.w); // Задается поворот(в кватернионе) фрейма-ребенка относительно фрейма-отца
+    // transformStamped.transform.rotation.x = quat_nav_goal.x();
+    // transformStamped.transform.rotation.y = quat_nav_goal.y();
+    // transformStamped.transform.rotation.z = quat_nav_goal.z();
+    // transformStamped.transform.rotation.w = quat_nav_goal.w();
+    // nav_goal_Fbroadcaster.sendTransform(transformStamped); // Трансформация отправляется
 }
 
 
@@ -815,6 +850,13 @@ int main(int argc, char **argv)
     regulator_pointer = &regulator;
     attract_pointer = &attract;
 
+    // nav_goal_Fbroadcaster = &real_nav_goal_Fbroadcaster;
+    // transformStamped = &real_transformStamped;
+
+    // tfBuffer = &real_tfBuffer;
+    // tfListener = &real_tfListener;
+    // transformStamped2 = &real_transformStamped2;
+
     // attract_odom_pointer = &attract.odom;
 
     // NODEHANDLE
@@ -827,7 +869,10 @@ int main(int argc, char **argv)
     goal_sub = goal_nh.subscribe("/move_base_simple/goal", 1000, got_goalCallback);
     // odom_sub = odom_get_nh.subscribe("/odom", 1000, got_odomCallback);
 
+
+
     ros::spin();
+
 
     return 0;
 }

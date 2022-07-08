@@ -32,8 +32,8 @@ void velocities_pub_in_LaserScan_publish(const sensor_msgs::LaserScan  &catchedS
 
   for(int i = 0; i < catchedScan.ranges.size(); i++)
   {
-     ROS_INFO_STREAM("RANGE CAPACITY IS " << velocities_pub_in_LaserScan.ranges.size());
-  ROS_INFO_STREAM("INPUT CAPACITY IS " << catchedScan.ranges.size());
+    //  ROS_INFO_STREAM("RANGE CAPACITY IS " << velocities_pub_in_LaserScan.ranges.size());
+  // ROS_INFO_STREAM("INPUT CAPACITY IS " << catchedScan.ranges.size());
     if(isfinite(catchedScan.ranges[i] ) == 1)
     {
      if(catchedScan.ranges[i] <= 5.0)
@@ -51,9 +51,9 @@ void velocities_pub_in_LaserScan_publish(const sensor_msgs::LaserScan  &catchedS
     }
   }
 
- ROS_INFO_STREAM("PUBLISHING velocities_pub_in_LaserScan...");
- ROS_INFO_STREAM("RANGE CAPACITY IS " << velocities_pub_in_LaserScan.ranges.capacity());
- ROS_INFO_STREAM("INPUT CAPACITY IS " << catchedScan.ranges.capacity());
+//  ROS_INFO_STREAM("PUBLISHING velocities_pub_in_LaserScan...");
+//  ROS_INFO_STREAM("RANGE CAPACITY IS " << velocities_pub_in_LaserScan.ranges.capacity());
+//  ROS_INFO_STREAM("INPUT CAPACITY IS " << catchedScan.ranges.capacity());
  velocities_pub_in_LaserScan_pub.publish(velocities_pub_in_LaserScan);
 }
 

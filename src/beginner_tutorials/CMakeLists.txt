@@ -258,10 +258,34 @@ add_executable(oop src/oop.cpp)
 target_link_libraries(oop ${catkin_LIBRARIES})
 add_dependencies(oop beginner_tutorials_generate_messages_cpp)
 
-# add_executable(qtoeu src/qtoeu.cpp)
-# target_link_libraries(qtoeu ${catkin_LIBRARIES})
-# add_dependencies(qtoeu beginner_tutorials_generate_messages_cpp)
+add_executable(tf2_listener_nav_goal_frame_to_laser src/tf2_listener_nav_goal_frame_to_laser.cpp)
+target_link_libraries(tf2_listener_nav_goal_frame_to_laser ${catkin_LIBRARIES})
+add_dependencies(tf2_listener_nav_goal_frame_to_laser beginner_tutorials_generate_messages_cpp)
+
+add_executable(tf2_nav_goal_frame_broadcaster src/tf2_nav_goal_frame_broadcaster.cpp)
+target_link_libraries(tf2_nav_goal_frame_broadcaster ${catkin_LIBRARIES})
+add_dependencies(tf2_nav_goal_frame_broadcaster beginner_tutorials_generate_messages_cpp)
 
 catkin_install_python(PROGRAMS scripts/Node1.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
