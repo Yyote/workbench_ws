@@ -214,10 +214,6 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-add_executable(publisher src/publisher.cpp)
-target_link_libraries(publisher ${catkin_LIBRARIES})
-add_dependencies(publisher beginner_tutorials_generate_messages_cpp)
-
 add_executable(LidarFormattingRPLidar src/LidarFormattingRPLidar.cpp)
 target_link_libraries(LidarFormattingRPLidar ${catkin_LIBRARIES})
 add_dependencies(LidarFormattingRPLidar beginner_tutorials_generate_messages_cpp)
@@ -241,30 +237,6 @@ add_dependencies(potential_fields beginner_tutorials_generate_messages_cpp)
 add_executable(tf2_laser_bind_to_odom src/tf2_laser_bind_to_odom.cpp)
 target_link_libraries(tf2_laser_bind_to_odom ${catkin_LIBRARIES})
 add_dependencies(tf2_laser_bind_to_odom beginner_tutorials_generate_messages_cpp)
-
-add_executable(tf2_static_broadcaster_world src/tf2_static_broadcaster_world.cpp)
-target_link_libraries(tf2_static_broadcaster_world ${catkin_LIBRARIES})
-add_dependencies(tf2_static_broadcaster_world beginner_tutorials_generate_messages_cpp)
-
-add_executable(tf2_base_footprint_to_map src/tf2_base_footprint_to_map.cpp)
-target_link_libraries(tf2_base_footprint_to_map ${catkin_LIBRARIES})
-add_dependencies(tf2_base_footprint_to_map beginner_tutorials_generate_messages_cpp)
-
-add_executable(tf2_static_broadcaster_base_footprint_to_map src/tf2_static_broadcaster_base_footprint_to_map.cpp)
-target_link_libraries(tf2_static_broadcaster_base_footprint_to_map ${catkin_LIBRARIES})
-add_dependencies(tf2_static_broadcaster_base_footprint_to_map beginner_tutorials_generate_messages_cpp)
-
-add_executable(oop src/oop.cpp)
-target_link_libraries(oop ${catkin_LIBRARIES})
-add_dependencies(oop beginner_tutorials_generate_messages_cpp)
-
-add_executable(tf2_listener_nav_goal_frame_to_laser src/tf2_listener_nav_goal_frame_to_laser.cpp)
-target_link_libraries(tf2_listener_nav_goal_frame_to_laser ${catkin_LIBRARIES})
-add_dependencies(tf2_listener_nav_goal_frame_to_laser beginner_tutorials_generate_messages_cpp)
-
-add_executable(tf2_nav_goal_frame_broadcaster src/tf2_nav_goal_frame_broadcaster.cpp)
-target_link_libraries(tf2_nav_goal_frame_broadcaster ${catkin_LIBRARIES})
-add_dependencies(tf2_nav_goal_frame_broadcaster beginner_tutorials_generate_messages_cpp)
 
 catkin_install_python(PROGRAMS scripts/Node1.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
