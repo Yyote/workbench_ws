@@ -7,7 +7,7 @@
 // 
 #include "ros/ros.h"
 #include "sensor_msgs/PointCloud.h"
-#include "beginner_tutorials/VelocitiesPC.h"
+#include "apf_la/VelocitiesPC.h"
 #include "nav_msgs/Odometry.h"
 #include "geometry_msgs/Quaternion.h"
 #include "geometry_msgs/PoseStamped.h"
@@ -272,7 +272,7 @@ class PotentialFieldRepulsive {
     {
         visibility_circle_topic = "/visibility_circle";
         visibility_circle.advertise_to_topic(visibility_circle_topic);
-        C = 0.0035;
+        C = 0.0025;
         minRange = 0.1;
         maxRange = 1.5;
         finvec_x = 0;
@@ -380,31 +380,34 @@ class PotentialFieldRepulsive {
                     vis_arr_pub.publish(debug_cloud); //PUB vis_arr debug_cloud
                 }
 
-                double bufx, bufy; //DEBUG rerror related
-                bufx = finvec_x;
-                bufy = finvec_y;          
-
-                // DEBUG INFO rinfo
                 if(0)
                 {
-                    ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl << "FUNCTION NAME: average coordinates calculation" << std::endl 
-                    << "VARIABLES: list of vars" << "\ncloud capacity, finvec_x and y, vector length, i:" << std::endl 
-                    << catchedCloud->points.capacity() << " "  << finvec_x << " " << finvec_y << " " << sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)) << " " << i << std::endl 
-                    << "catchedCloud->points.at(i).x --> " << catchedCloud->points.at(i).x << std::endl << "catchedCloud->points.at(i).y --> " << catchedCloud->points.at(i).y << std::endl 
-                    <<"_________________________________" << std::endl << "_________________________________" << std::endl);
-                }
+                    double bufx, bufy; //DEBUG rerror related
+                    bufx = finvec_x;
+                    bufy = finvec_y;          
 
-                // DEBUG rerror
-                if (finvec_x == finvec_y && finvec_x != 0)
-                {
-                    ROS_ERROR_STREAM("FINVECX IS EQ TO FINVECY. terminated.");
-                    shutdown();
-                }
+                    // DEBUG INFO rinfo
+                    if(0)
+                    {
+                        ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl << "FUNCTION NAME: average coordinates calculation" << std::endl 
+                        << "VARIABLES: list of vars" << "\ncloud capacity, finvec_x and y, vector length, i:" << std::endl 
+                        << catchedCloud->points.capacity() << " "  << finvec_x << " " << finvec_y << " " << sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)) << " " << i << std::endl 
+                        << "catchedCloud->points.at(i).x --> " << catchedCloud->points.at(i).x << std::endl << "catchedCloud->points.at(i).y --> " << catchedCloud->points.at(i).y << std::endl 
+                        <<"_________________________________" << std::endl << "_________________________________" << std::endl);
+                    }
 
-                if(finvec_x - bufx > 50 || finvec_y - bufy > 50) //DEBUG rerror
-                {
-                    ROS_ERROR_STREAM("FINVEC IS EXCEEDING LIMITS AND AVOIDS FILTRATION --> " << std::endl << "finvec_x ---> " << finvec_x << std::endl << "finvec_y ---> " << finvec_y);
-                    shutdown();
+                    // DEBUG rerror
+                    if (finvec_x == finvec_y && finvec_x != 0)
+                    {
+                        ROS_ERROR_STREAM("FINVECX IS EQ TO FINVECY. terminated.");
+                        shutdown();
+                    }
+
+                    if(finvec_x - bufx > 50 || finvec_y - bufy > 50) //DEBUG rerror
+                    {
+                        ROS_ERROR_STREAM("FINVEC IS EXCEEDING LIMITS AND AVOIDS FILTRATION --> " << std::endl << "finvec_x ---> " << finvec_x << std::endl << "finvec_y ---> " << finvec_y);
+                        shutdown();
+                    }
                 }
             }
         }
@@ -656,7 +659,7 @@ class SpeedRegulator2D
 
     SpeedRegulator2D()
     {
-        regulator_mode = 1;
+        regulator_mode = 3;
         x_regulated = 0;
         y_regulated = 0;
         publish_rviz_visualization = 1;
@@ -795,7 +798,7 @@ class SpeedRegulator2D
 
         else if (regulator_mode == 3)
         {
-            twist.angular.z = y_regulated * (y_regulated < 0.4) + 0.4 * (!(y_regulated < 0.4));
+            twist.angular.z = y_regulated * (y_regulated < 0.75) + 0.75 * (!(y_regulated < 0.75));
             twist.linear.x = x_regulated  * (x_regulated < max_speed) + max_speed * (x_regulated >= max_speed);
         }
 
@@ -859,9 +862,16 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
 {
     repulse_pointer->calculate_repulse_vector(catchedCloud);
     // regulator_pointer->set_sum_two_vectors_to_regulate_HALFOVERRIDE(repulse_pointer->finvec_x, repulse_pointer->finvec_y, attract_pointer->finvec_x, attract_pointer->finvec_y);
-        regulator_pointer->set_regulate_one_vector_sum(repulse_pointer->finvec_x, repulse_pointer->finvec_y);
-        // regulator_pointer->regulate();
-        regulator_pointer->repulsion_ready = 1;
+    regulator_pointer->set_regulate_one_vector_sum(repulse_pointer->finvec_x, repulse_pointer->finvec_y);
+    // regulator_pointer->regulate();
+    regulator_pointer->repulsion_ready = 1;
+    // ЭТО БЫЛ РАССЧЕТ ОТТАЛКИВАНИЯ
+
+    attract_pointer->calculate_attract_vector();
+    regulator_pointer->set_regulate_one_vector_sum(attract_pointer->finvec_x, attract_pointer->finvec_y);
+    // regulator_pointer->regulate();
+    regulator_pointer->attraction_ready = 1;
+    // ЭТО БЫЛ РАССЧЕТ ПРИТЯГИВАНИЯ
 }
 
 
@@ -880,10 +890,6 @@ void got_odomCallback(const nav_msgs::Odometry::ConstPtr& catched_odom) // HOOK 
     attract_odom_pointer->pose.pose.orientation.x = catched_odom->pose.pose.orientation.x;
     attract_odom_pointer->pose.pose.orientation.y = catched_odom->pose.pose.orientation.y;
     attract_odom_pointer->pose.pose.orientation.z = catched_odom->pose.pose.orientation.z; 
-    attract_pointer->calculate_attract_vector();
-        regulator_pointer->set_regulate_one_vector_sum(attract_pointer->finvec_x, attract_pointer->finvec_y);
-        // regulator_pointer->regulate();
-        regulator_pointer->attraction_ready = 1;
 } // RETHINK
 
 
