@@ -23,6 +23,8 @@
 #include "tf2_ros/transform_listener.h"
 #include "tf2/exceptions.h"
 #include <cmath>
+#include <dynamic_reconfigure/server.h>
+#include <apf_la/reconfigure_potential_fieldsConfig.h>
 
 
 class MarkerHandler {
@@ -242,20 +244,14 @@ class EulerAngles {
 class PotentialFieldRepulsive {
     private:
     // CODEINFO Константы
-    float maxRange; //max range to calculate
-    float minRange; //min range to calculate
-    double C; // мультипликатор
 
     std::string final_vel_arrow_topic;
     EulerAngles angles;
-    MarkerHandler final_vel_arrow;
+    MarkerHandler final_repulsion_arrow;
     MarkerHandler visibility_circle;
     std::string visibility_circle_topic;
     ros::Publisher vis_arr_pub;
     ros::NodeHandle debug_cloud_nh;
-    int publish_rviz_visualization_arrow;
-    int publish_rviz_visualization_debug_cloud;
-    int publish_rviz_visualization_visibility_circle;
 
     int shutdown()
     {
@@ -265,6 +261,14 @@ class PotentialFieldRepulsive {
     }
 
     public:
+    float maxRange; //max range to calculate
+    float minRange; //min range to calculate
+    double C; // мультипликатор
+
+    bool publish_rviz_visualization_arrow;
+    bool publish_rviz_visualization_debug_cloud;
+    bool publish_rviz_visualization_visibility_circle;
+
     double finvec_x;
     double finvec_y;
 
@@ -281,7 +285,7 @@ class PotentialFieldRepulsive {
         angles.pitch = 0;
         angles.yaw = 0;     
         final_vel_arrow_topic = "/potential_field_REPULSION";
-        final_vel_arrow.advertise_to_topic(final_vel_arrow_topic);
+        final_repulsion_arrow.advertise_to_topic(final_vel_arrow_topic);
         vis_arr_pub = debug_cloud_nh.advertise<sensor_msgs::PointCloud>("/debug_points", 1000);
         publish_rviz_visualization_arrow = 1;
         publish_rviz_visualization_debug_cloud = 1;
@@ -439,18 +443,18 @@ class PotentialFieldRepulsive {
         //------------------------------------------------------------------------------
         // VISUALIZATION //RVIZ visualiztion code // TODO make it a func
         //------------------------------------------------------------------------------
-        final_vel_arrow.set_frame("laser"); //FRAME
-        final_vel_arrow.set_namespace("speeds_namespace");
-        final_vel_arrow.set_id(5);
-        final_vel_arrow.set_type(0);
-        final_vel_arrow.set_pose(0, 0, 0, q);
-        final_vel_arrow.set_scale(-sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)), 0.02, 0.02);
-        final_vel_arrow.set_color(1.0, 0.0, 1.0, 0.0);
-        // final_vel_arrow.debug_info("Стрелочка");
+        final_repulsion_arrow.set_frame("laser"); //FRAME
+        final_repulsion_arrow.set_namespace("speeds_namespace");
+        final_repulsion_arrow.set_id(5);
+        final_repulsion_arrow.set_type(0);
+        final_repulsion_arrow.set_pose(0, 0, 0, q);
+        final_repulsion_arrow.set_scale(-sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)), 0.02, 0.02);
+        final_repulsion_arrow.set_color(1.0, 0.0, 1.0, 0.0);
+        // final_repulsion_arrow.debug_info("Стрелочка");
 
         if(publish_rviz_visualization_arrow == 1)
         {
-            final_vel_arrow.publish_marker(); // PUB //RVIZ publish
+            final_repulsion_arrow.publish_marker(); // PUB //RVIZ publish
         }
         //*-*-*-*-*-*-*-*--*-*-*-*-*--*--*-*-*-*-*-*-*--*--*-*-*-*-*-*-*-*-*-*-*--*-*-*-*
 
@@ -484,23 +488,26 @@ class PotentialFieldRepulsive {
 class   PotentialFieldAttractive
 {
     private:
-    double C;
     EulerAngles angles;
     double vector_length;
     double tmpvec_x = 0;
     double tmpvec_y = 0;
 
     public:
+    double C;
     nav_msgs::Odometry odom; // HOOK odom usage
     double goal_x /*= 0*/; // Полученная координата х
     double goal_y /*= 0*/; // Полученная у
     double finvec_x; // Рассчитанная точка
     double finvec_y; // Рассчитанная точка
-    double max_vector;
     int goal_is_new = 0;
-    int publish_rviz_visualization;
-    MarkerHandler final_vel_arrow;
+    MarkerHandler final_attraction_arrow;
     MarkerHandler goal;
+
+    float max_vector;
+    bool publish_final_attraction_arrow;
+    bool publish_goal;
+    // IDEA min_vector, goal_accomplished_range;
 
     PotentialFieldAttractive()
     {
@@ -511,10 +518,11 @@ class   PotentialFieldAttractive
         // geometry_msgs::TransformStamped transformStamped;
         goal_x = NULL;
         goal_y = NULL;
-        publish_rviz_visualization = 1;
+        publish_final_attraction_arrow = 1;
+        publish_goal = 1;
         finvec_x = 0;
         finvec_y = 0;
-        final_vel_arrow.advertise_to_topic("/potential_field_ATTRACTION");
+        final_attraction_arrow.advertise_to_topic("/potential_field_ATTRACTION");
         goal.advertise_to_topic("/goal_marker");
     }
 
@@ -597,21 +605,21 @@ class   PotentialFieldAttractive
         //------------------------------------------------------------------------------
         // VISUALIZATION //RVIZ visualiztion code // TODO make it a func
         //------------------------------------------------------------------------------
-        final_vel_arrow.set_frame("laser"); //FRAME
-        final_vel_arrow.set_namespace("speeds_namespace2");
-        final_vel_arrow.set_id(34);
-        final_vel_arrow.set_type(0);
-        // final_vel_arrow.set_type(2);
-        // final_vel_arrow.set_pose(odom.pose.pose.position.x, odom.pose.pose.position.y, odom.pose.pose.position.z, q);
-        final_vel_arrow.set_pose(0, 0, 0, q);
-        final_vel_arrow.set_scale(sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)), 0.02, 0.02);
-        // final_vel_arrow.set_scale(0.2, 0.2, 0.2);
-        final_vel_arrow.set_color(1.0, 1.0, 1.0, 0.0);
-        // final_vel_arrow.debug_info("Arrow");
+        final_attraction_arrow.set_frame("laser"); //FRAME
+        final_attraction_arrow.set_namespace("speeds_namespace2");
+        final_attraction_arrow.set_id(34);
+        final_attraction_arrow.set_type(0);
+        // final_attraction_arrow.set_type(2);
+        // final_attraction_arrow.set_pose(odom.pose.pose.position.x, odom.pose.pose.position.y, odom.pose.pose.position.z, q);
+        final_attraction_arrow.set_pose(0, 0, 0, q);
+        final_attraction_arrow.set_scale(sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)), 0.02, 0.02);
+        // final_attraction_arrow.set_scale(0.2, 0.2, 0.2);
+        final_attraction_arrow.set_color(1.0, 1.0, 1.0, 0.0);
+        // final_attraction_arrow.debug_info("Arrow");
 
-        if(publish_rviz_visualization == 1)
+        if(publish_final_attraction_arrow == 1)
         {
-            final_vel_arrow.publish_marker(); // PUB //RVIZ publish
+            final_attraction_arrow.publish_marker(); // PUB //RVIZ publish
         }
 
         tf2::Quaternion q1;
@@ -630,7 +638,7 @@ class   PotentialFieldAttractive
         goal.set_color(1.0, 1.0, 0.0, 0.0);
         // goal.debug_info("Goal");
 
-        if(publish_rviz_visualization == 1)
+        if(publish_goal == 1)
         {
             goal.publish_marker(); // PUB //RVIZ publish
         }
@@ -643,32 +651,35 @@ class   PotentialFieldAttractive
 class SpeedRegulator2D
 {
     private:
-    int regulator_mode; //1 - wheeled bot, 2 - quadrocopter, 3 - y is turning by yaw
     double x_regulated;
     double y_regulated;
-    float maxRange; //max range to calculate
-    float max_speed;
-    int publish_rviz_visualization;
     ros::Publisher speed_pub;
     ros::NodeHandle vlcts;
-    MarkerHandler final_arrow;
+    MarkerHandler total_arrow;
 
     public:
+    double max_linear_speed;
+    double max_angular_speed;
+    double max_angle_to_accept_movement;
+    int regulator_mode; //1 - wheeled bot safe, 2 - quadrocopter, 3 - y is turning by yaw
     int repulsion_ready;
     int attraction_ready;
+    int publish_total_arrow;
 
     SpeedRegulator2D()
     {
         regulator_mode = 3;
+        max_angle_to_accept_movement = 0.1;
+        publish_total_arrow = 1;
+        max_linear_speed = 0.2;
+        max_angular_speed = 0.75;
+
         x_regulated = 0;
         y_regulated = 0;
-        publish_rviz_visualization = 1;
-        speed_pub = vlcts.advertise<geometry_msgs::Twist>("/cmd_vel", 1000);
-        maxRange = 1;
-        max_speed = 0.2;
         repulsion_ready = 0;
         attraction_ready = 0;
-        final_arrow.advertise_to_topic("/final_PF_arrow");
+        total_arrow.advertise_to_topic("/final_PF_arrow");
+        speed_pub = vlcts.advertise<geometry_msgs::Twist>("/cmd_vel", 1000);
     }
 
     void set_regulate_one_vector(double x, double y)
@@ -746,11 +757,11 @@ class SpeedRegulator2D
             }
             else
             {
-                if(abs(angles.yaw) - 0.1 < 0)
+                if(abs(angles.yaw) - max_angle_to_accept_movement < 0)
                 {
                     twist.angular.z = 0;
-                    twist.linear.x = x_regulated * (x_regulated < max_speed) + max_speed * (x_regulated >= max_speed);
-                    twist.linear.y = y_regulated * (y_regulated < max_speed) + max_speed * (y_regulated >= max_speed);
+                    twist.linear.x = x_regulated * (x_regulated < max_linear_speed) + max_linear_speed * (x_regulated >= max_linear_speed);
+                    twist.linear.y = y_regulated * (y_regulated < max_linear_speed) + max_linear_speed * (y_regulated >= max_linear_speed);
                 }
 
                 else if (angles.yaw > 0 && angles.yaw < M_PI && regulator_mode == 1)
@@ -798,25 +809,25 @@ class SpeedRegulator2D
 
         else if (regulator_mode == 3)
         {
-            twist.angular.z = y_regulated * (y_regulated < 0.75) + 0.75 * (!(y_regulated < 0.75));
-            twist.linear.x = x_regulated  * (x_regulated < max_speed) + max_speed * (x_regulated >= max_speed);
+            twist.angular.z = y_regulated * (y_regulated < max_angular_speed) + max_angular_speed * (!(y_regulated < max_angular_speed));
+            twist.linear.x = x_regulated  * (x_regulated < max_linear_speed) + max_linear_speed * (x_regulated >= max_linear_speed);
         }
 
         tf2::Quaternion q_finArrow;
         q_finArrow.setRPY(angles.roll, angles.pitch, angles.yaw);
         q_finArrow.normalize();
 
-        final_arrow.set_frame("laser"); //FRAME
-        final_arrow.set_namespace("speeds_namespace2");
-        final_arrow.set_id(8);
-        final_arrow.set_type(0);
-        final_arrow.set_pose(0, 0, 0, q_finArrow);
-        final_arrow.set_scale(sqrt(pow(x_regulated, 2) + pow(y_regulated, 2)), 0.05, 0.05);
-        final_arrow.set_color(1.0, 0.0, 1.0, 1.0);
+        total_arrow.set_frame("laser"); //FRAME
+        total_arrow.set_namespace("speeds_namespace2");
+        total_arrow.set_id(8);
+        total_arrow.set_type(0);
+        total_arrow.set_pose(0, 0, 0, q_finArrow);
+        total_arrow.set_scale(sqrt(pow(x_regulated, 2) + pow(y_regulated, 2)), 0.05, 0.05);
+        total_arrow.set_color(1.0, 0.0, 1.0, 1.0);
 
-        if(publish_rviz_visualization == 1)
+        if(publish_total_arrow == 1)
         {
-            final_arrow.publish_marker(); // PUB //RVIZ publish
+            total_arrow.publish_marker(); // PUB //RVIZ publish
         }
 
         speed_pub.publish(twist); //PUB twist
@@ -828,27 +839,10 @@ class SpeedRegulator2D
     }
 };
 
-PotentialFieldRepulsive *repulse_pointer;
-SpeedRegulator2D *regulator_pointer;
-PotentialFieldAttractive *attract_pointer;
-
-nav_msgs::Odometry *attract_odom_pointer;
-
-// static tf2_ros::TransformBroadcaster *nav_goal_Fbroadcaster; // Создание объекта транслятора трансформаций
-// geometry_msgs::TransformStamped *transformStamped; // Создание объекта трансформации
-
-// tf2_ros::Buffer *tfBuffer;
-// tf2_ros::TransformListener *tfListener;
-// geometry_msgs::TransformStamped *transformStamped2;
-
-// double *odom_x_pointer; // HOOK odom usage
-// double *odom_y_pointer;
-// double *odom_ang_z_pointer;
-// nav_msgs::Odometry *attract_odom_pointer; //LOG NEW перевести все формулы на новый метод использования пойманной одометрии
 
 // PRESETUP 
-// bool publish_rviz_vizualization = 1;
 int okcheck = 1;
+bool enable_attraction = 1;
 
 ros::Subscriber goal_sub;
 ros::Subscriber odom_sub; // HOOK odom usage
@@ -857,6 +851,33 @@ ros::Subscriber odom_sub; // HOOK odom usage
 ros::Subscriber catchPC_sub;
 ros::Publisher Catched_Cloud_and_PF;// PUB declaration
 
+PotentialFieldRepulsive *repulse_pointer;
+SpeedRegulator2D *regulator_pointer;
+PotentialFieldAttractive *attract_pointer;
+
+nav_msgs::Odometry *attract_odom_pointer;
+
+void callback(apf_la::reconfigure_potential_fieldsConfig &config, uint32_t level) 
+{
+	repulse_pointer->C = config.repulsion_multiplier;
+    repulse_pointer->maxRange = config.max_calculation_distance;
+    repulse_pointer->minRange = config.min_calculation_distance;
+    repulse_pointer->publish_rviz_visualization_arrow = config.RVIZ_repulsion_arrow;
+    repulse_pointer->publish_rviz_visualization_debug_cloud = config.RVIZ_calculated_points_cloud;
+    repulse_pointer->publish_rviz_visualization_visibility_circle = config.RVIZ_visibility_circle;
+
+    attract_pointer->C = config.attraction_multiplier;
+    attract_pointer->max_vector = config.max_vector;
+    attract_pointer->publish_final_attraction_arrow = config.RVIZ_attraction_arrow;
+    attract_pointer->publish_goal = config.RVIZ_goal;
+
+    enable_attraction = config.enable_attraction;
+
+    regulator_pointer->regulator_mode = config.regulator_mode;
+    regulator_pointer->max_linear_speed = config.max_linear_speed;
+    regulator_pointer->max_angular_speed = config.max_angular_speed;
+    regulator_pointer->max_angle_to_accept_movement = config.max_angle_to_accept_movement;
+} 
 
 void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
 {
@@ -868,8 +889,11 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
     // ЭТО БЫЛ РАССЧЕТ ОТТАЛКИВАНИЯ
 
     attract_pointer->calculate_attract_vector();
-    regulator_pointer->set_regulate_one_vector_sum(attract_pointer->finvec_x, attract_pointer->finvec_y);
-    // regulator_pointer->regulate();
+    if(enable_attraction == 1)
+    {
+        regulator_pointer->set_regulate_one_vector_sum(attract_pointer->finvec_x, attract_pointer->finvec_y);
+        // regulator_pointer->regulate();
+    }
     regulator_pointer->attraction_ready = 1;
     // ЭТО БЫЛ РАССЧЕТ ПРИТЯГИВАНИЯ
 }
@@ -932,7 +956,10 @@ int main(int argc, char **argv)
     
     odom_sub = odom_get_nh.subscribe("/odom", 1000, got_odomCallback); //  HOOK odom usage
 
-
+    dynamic_reconfigure::Server<apf_la::reconfigure_potential_fieldsConfig> server;
+    dynamic_reconfigure::Server<apf_la::reconfigure_potential_fieldsConfig>::CallbackType f;
+    f = boost::bind(&callback, _1, _2); 
+    server.setCallback(f);
 
     ros::spin();
 

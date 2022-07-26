@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   tf
   laser_geometry
+  dynamic_reconfigure
 )
 
 ## System dependencies are found with CMake's conventions
@@ -100,6 +101,17 @@ add_message_files(
 #   cfg/DynReconf1.cfg
 #   cfg/DynReconf2.cfg
 # )
+
+
+# DYNAMIC RECONFIGURE HEADERS
+
+#add dynamic reconfigure api
+#find_package(catkin REQUIRED dynamic_reconfigure)
+generate_dynamic_reconfigure_options(
+  cfg/reconfigure_potential_fields.cfg
+  #...
+)
+
 
 ###################################
 ## catkin specific configuration ##
@@ -214,6 +226,10 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
+
+
+# NODES
+
 add_executable(LidarFormattingRPLidar src/LidarFormattingRPLidar.cpp)
 target_link_libraries(LidarFormattingRPLidar ${catkin_LIBRARIES})
 add_dependencies(LidarFormattingRPLidar apf_la_generate_messages_cpp)
@@ -222,8 +238,13 @@ add_executable(LStoPC src/LStoPC.cpp)
 target_link_libraries(LStoPC ${catkin_LIBRARIES})
 add_dependencies(LStoPC apf_la_generate_messages_cpp)
 
+add_executable(potential_fields src/potential_fields.cpp)
+target_link_libraries(potential_fields ${catkin_LIBRARIES})
+add_dependencies(potential_fields apf_la_generate_messages_cpp)
 
-
+add_executable(tf2_laser_bind_to_odom src/tf2_laser_bind_to_odom.cpp)
+target_link_libraries(tf2_laser_bind_to_odom ${catkin_LIBRARIES})
+add_dependencies(tf2_laser_bind_to_odom apf_la_generate_messages_cpp)
 
 
 
