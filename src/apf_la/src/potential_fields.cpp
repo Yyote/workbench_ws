@@ -27,6 +27,25 @@
 #include <apf_la/reconfigure_potential_fieldsConfig.h>
 
 
+// PRESETUP
+bool enable_turn_vectors_to_global = true;
+bool enable_attraction = true;
+int okcheck = 1;
+
+ros::Subscriber goal_sub;
+ros::Subscriber odom_sub; // HOOK odom usage
+
+// SUB catchPC creation
+ros::Subscriber catchPC_sub;
+ros::Publisher Catched_Cloud_and_PF;// PUB declaration
+
+PotentialFieldRepulsive *repulse_pointer;
+SpeedRegulator2D *regulator_pointer;
+PotentialFieldAttractive *attract_pointer;
+
+nav_msgs::Odometry *attract_odom_pointer;
+
+
 class MarkerHandler {
     private:
     visualization_msgs::Marker marker;
@@ -239,7 +258,15 @@ class EulerAngles {
     double roll;
     double pitch;
     double yaw;
+
+    void setRPY(float new_roll, float new_pitch, float new_yaw)
+    {
+        roll = new_roll;
+        pitch = new_pitch;
+        yaw = new_yaw;
+    }
 };
+
 
 class PotentialFieldRepulsive {
     private:
@@ -251,7 +278,6 @@ class PotentialFieldRepulsive {
     MarkerHandler visibility_circle;
     std::string visibility_circle_topic;
     ros::Publisher vis_arr_pub;
-    ros::NodeHandle debug_cloud_nh;
 
     int shutdown()
     {
@@ -325,18 +351,18 @@ class PotentialFieldRepulsive {
             {
                 if(!( pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2) >= maxRange * maxRange || pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2) <= minRange * minRange))  // Проверка на попадание в зону видимости
                 {
-                    //DEBUG INFO rinfo
-                    //****************************************************************************************************
-                    if(0)
-                    {
-                        ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
-                        << "FUNCTION NAME: zero fight" << std::endl 
-                        << "VARIABLES: "
-                        << "vector length -->"  << sqrt(pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2)) << std::endl
-                        << "maxRange -->"  << maxRange << std::endl 
-                        << "_________________________________" << std::endl << "_________________________________" << std::endl);
-                    }
-                    //****************************************************************************************************
+//DEBUG INFO rinfo
+//****************************************************************************************************
+if(0)
+{
+    ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
+    << "FUNCTION NAME: zero fight" << std::endl 
+    << "VARIABLES: "
+    << "vector length -->"  << sqrt(pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2)) << std::endl
+    << "maxRange -->"  << maxRange << std::endl 
+    << "_________________________________" << std::endl << "_________________________________" << std::endl);
+}
+//****************************************************************************************************
 
                     if (catchedCloud->points.at(i).x != 0)
                     {
@@ -349,22 +375,22 @@ class PotentialFieldRepulsive {
                         tmpvec_x = C * point_step * ( (1 / vector_length) * cos(atan(catchedCloud->points.at(i).x / catchedCloud->points.at(i).y))/* - (maxRange / sqrt(2))*/ ); // SOLVED change the formula for the pithagorean
                     }
 
-                    //DEBUG INFO rwarn
-                    //****************************************************************************************************
-                    if(0)
-                    {
-                        ROS_WARN_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
-                        << "FUNCTION NAME: tmpvec_y check" << std::endl 
-                        << "VARIABLES: " << std::endl
-                        << "catched point y -->"  << catchedCloud->points.at(i).y << std::endl 
-                        << "catched point x -->"  << catchedCloud->points.at(i).x << std::endl 
-                        << "tmpvec_y -->"  << tmpvec_y << std::endl 
-                        << "sin(atan(catchedCloud->points.at(i).y / catchedCloud->points.at(i).x)) * (1 / vec_length) -->"  << (1 / vector_length) * sin(atan(catchedCloud->points.at(i).y / catchedCloud->points.at(i).x)) << std::endl 
-                        << "tmpvec_x -->"  << tmpvec_x << std::endl 
-                        << "cos(atan(catchedCloud->points.at(i).y / catchedCloud->points.at(i).x)) * (1 / vec_length) -->"  << (1 / vector_length) * cos(atan(catchedCloud->points.at(i).y / catchedCloud->points.at(i).x)) << std::endl 
-                        << "_________________________________" << std::endl << "_________________________________" << std::endl);
-                    }
-                    //****************************************************************************************************
+//DEBUG INFO rwarn
+//****************************************************************************************************
+if(0)
+{
+    ROS_WARN_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
+    << "FUNCTION NAME: tmpvec_y check" << std::endl 
+    << "VARIABLES: " << std::endl
+    << "catched point y -->"  << catchedCloud->points.at(i).y << std::endl 
+    << "catched point x -->"  << catchedCloud->points.at(i).x << std::endl 
+    << "tmpvec_y -->"  << tmpvec_y << std::endl 
+    << "sin(atan(catchedCloud->points.at(i).y / catchedCloud->points.at(i).x)) * (1 / vec_length) -->"  << (1 / vector_length) * sin(atan(catchedCloud->points.at(i).y / catchedCloud->points.at(i).x)) << std::endl 
+    << "tmpvec_x -->"  << tmpvec_x << std::endl 
+    << "cos(atan(catchedCloud->points.at(i).y / catchedCloud->points.at(i).x)) * (1 / vec_length) -->"  << (1 / vector_length) * cos(atan(catchedCloud->points.at(i).y / catchedCloud->points.at(i).x)) << std::endl 
+    << "_________________________________" << std::endl << "_________________________________" << std::endl);
+}
+//****************************************************************************************************
 
                     if(catchedCloud->points.at(i).x > 0 && tmpvec_x > 0)
                     {
@@ -390,15 +416,15 @@ class PotentialFieldRepulsive {
                     bufx = finvec_x;
                     bufy = finvec_y;          
 
-                    // DEBUG INFO rinfo
-                    if(0)
-                    {
-                        ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl << "FUNCTION NAME: average coordinates calculation" << std::endl 
-                        << "VARIABLES: list of vars" << "\ncloud capacity, finvec_x and y, vector length, i:" << std::endl 
-                        << catchedCloud->points.capacity() << " "  << finvec_x << " " << finvec_y << " " << sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)) << " " << i << std::endl 
-                        << "catchedCloud->points.at(i).x --> " << catchedCloud->points.at(i).x << std::endl << "catchedCloud->points.at(i).y --> " << catchedCloud->points.at(i).y << std::endl 
-                        <<"_________________________________" << std::endl << "_________________________________" << std::endl);
-                    }
+// DEBUG INFO rinfo
+if(0)
+{
+    ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl << "FUNCTION NAME: average coordinates calculation" << std::endl 
+    << "VARIABLES: list of vars" << "\ncloud capacity, finvec_x and y, vector length, i:" << std::endl 
+    << catchedCloud->points.capacity() << " "  << finvec_x << " " << finvec_y << " " << sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)) << " " << i << std::endl 
+    << "catchedCloud->points.at(i).x --> " << catchedCloud->points.at(i).x << std::endl << "catchedCloud->points.at(i).y --> " << catchedCloud->points.at(i).y << std::endl 
+    <<"_________________________________" << std::endl << "_________________________________" << std::endl);
+}
 
                     // DEBUG rerror
                     if (finvec_x == finvec_y && finvec_x != 0)
@@ -415,10 +441,12 @@ class PotentialFieldRepulsive {
                 }
             }
         }
-        if(0)
-        {
-            ROS_WARN_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl << "FUNCTION NAME: result vector in variables" << std::endl << "VARIABLES: list of vars:" << std::endl << "finvec_x -->" << finvec_x << std::endl << "finvec_y -->" << finvec_y << std::endl << "vector length -->" << sqrt(pow(finvec_x , 2) + pow(finvec_y , 2)) <<  std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl);
-        }   
+
+if(0)
+{
+    ROS_WARN_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl << "FUNCTION NAME: result vector in variables" << std::endl << "VARIABLES: list of vars:" << std::endl << "finvec_x -->" << finvec_x << std::endl << "finvec_y -->" << finvec_y << std::endl << "vector length -->" << sqrt(pow(finvec_x , 2) + pow(finvec_y , 2)) <<  std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl);
+}   
+
         // CODEINFO angle calculation to pass to rviz markers ---> calculate current(i) vector's angle 
         angles.yaw = (atan(finvec_y/finvec_x)/* - (M_PI) * (finvec_x > 0)*/); //BUG no vector inversion
         angles.yaw = (angles.yaw + 2 * M_PI) * (angles.yaw < - M_PI) + (angles.yaw) * (!(angles.yaw < - M_PI));
@@ -429,20 +457,27 @@ class PotentialFieldRepulsive {
         q.setRPY(angles.roll, angles.pitch, angles.yaw - (M_PI) * (finvec_x > 0));
         q = q.normalize(); //SOLVED something is going with angle. cant say what, maybe its not a bug ---> in velocity calculation there was an if statement that tried to pass only > 0.001 coordiantes. It totally deleted all negative values from coordinates
 
-        // DEBUG INFO rinfo
-        if(0)
+// DEBUG INFO rinfo
+if(0)
+{
+    ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
+    << "FUNCTION NAME: angle calc" << std::endl 
+    << "VARIABLES: " << std::endl 
+    << "angles.yaw (atan)-->" << angles.yaw << std::endl << "finvec_y/finvec_x --> " << finvec_y/finvec_x << std::endl << "finvec_y --> " << finvec_y << std::endl << "finvec_x --> " << finvec_x << std::endl << std::endl 
+    << "_________________________________" << std::endl << "_________________________________" << std::endl);
+}
+
+        // Если включено, вектор поворачивается в глобальную систему координат для визуализации и только. Передача финального вектора в глобальную систему идет в РЕГУЛЯТОРЕ
+        if(enable_turn_vectors_to_global)
         {
-            ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
-            << "FUNCTION NAME: angle calc" << std::endl 
-            << "VARIABLES: " << std::endl 
-            << "angles.yaw (atan)-->" << angles.yaw << std::endl << "finvec_y/finvec_x --> " << finvec_y/finvec_x << std::endl << "finvec_y --> " << finvec_y << std::endl << "finvec_x --> " << finvec_x << std::endl << std::endl 
-            << "_________________________________" << std::endl << "_________________________________" << std::endl);
+            finvec_x = finvec_x * cos(-angles.yaw) - finvec_y * sin(-angles.yaw);
+            finvec_y = finvec_x * sin(-angles.yaw) + finvec_y * cos(-angles.yaw);
         }
 
-        //*-*-*-*-*-*-*-*--*-*-*-*-*--*--*-*-*-*-*-*-*--*--*-*-*-*-*-*-*-*-*-*-*--*-*-*-*
-        //------------------------------------------------------------------------------
-        // VISUALIZATION //RVIZ visualiztion code // TODO make it a func
-        //------------------------------------------------------------------------------
+        //* - * - * - * - * - * - * - * - * - * - * - */ - */ - * - * - * - * - *
+        //* - * - * - * - * - * -     RVIZ      - * - */ - */ - * - * - * - * - *  //RVIZ 
+        //* - * - * - * - * - * - * - * - * - * - * - */ - */ - * - * - * - * - *
+
         final_repulsion_arrow.set_frame("laser"); //FRAME
         final_repulsion_arrow.set_namespace("speeds_namespace");
         final_repulsion_arrow.set_id(5);
@@ -456,11 +491,9 @@ class PotentialFieldRepulsive {
         {
             final_repulsion_arrow.publish_marker(); // PUB //RVIZ publish
         }
+
         //*-*-*-*-*-*-*-*--*-*-*-*-*--*--*-*-*-*-*-*-*--*--*-*-*-*-*-*-*-*-*-*-*--*-*-*-*
 
-        //* - * - * - * - * - * - * - * - * - * - * - */ - */ - * - * - * - * - *
-        //* - * - * - * - * - * -     RVIZ      - * - */ - */ - * - * - * - * - *
-        //* - * - * - * - * - * - * - * - * - * - * - */ - */ - * - * - * - * - *
         tf2::Quaternion q2;
         q2.setX(0);
         q2.setY(0);
@@ -481,6 +514,13 @@ class PotentialFieldRepulsive {
         }
         //* - * - * - * - * - * - * - * - * - * - * - */ - */ - * - * - * - * - *
         //* - * - * - * - * - * - * - * - * - * - * - */ - */ - * - * - * - * - *
+
+        // Если включено, вектор поворачивается в обратно в локальную систему координат. Передача финального вектора в глобальную систему идет в РЕГУЛЯТОРЕ
+        if(enable_turn_vectors_to_global)
+        {
+            finvec_x = finvec_x * cos(angles.yaw) - finvec_y * sin(angles.yaw);
+            finvec_y = finvec_x * sin(angles.yaw) + finvec_y * cos(angles.yaw);
+        }
     }
 };
 
@@ -500,7 +540,6 @@ class   PotentialFieldAttractive
     double goal_y /*= 0*/; // Полученная у
     double finvec_x; // Рассчитанная точка
     double finvec_y; // Рассчитанная точка
-    int goal_is_new = 0;
     MarkerHandler final_attraction_arrow;
     MarkerHandler goal;
 
@@ -581,30 +620,41 @@ class   PotentialFieldAttractive
         // // // angles.yaw = (angles.yaw + 2 * M_PI) * (angles.yaw < - M_PI) + (angles.yaw) * (!(angles.yaw < - M_PI));
         // // angles.yaw = M_PI;
 
-        tf2::Quaternion q;
-        q.setRPY(0, 0, atan(finvec_y / finvec_x) - M_PI * (finvec_x < 0));
-        // q.setRPY(0, 0, 0);
-        q.normalize();
 
-        //DEBUG rinfo finvec of attraction
-        //****************************************************************************************************
-        if(0)
-        {
-            ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
-            << "FUNCTION NAME: finvec of attraction" << std::endl 
-            << "VARIABLES: " << std::endl 
-            << "finvec_x -->" << finvec_x << std::endl 
-            << "finvec_y -->" << finvec_y << std::endl 
-            << "_________________________________" << std::endl << "_________________________________" << std::endl);
-        }
-        //****************************************************************************************************
+//DEBUG rinfo finvec of attraction
+//****************************************************************************************************
+if(0)
+{
+    ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
+    << "FUNCTION NAME: finvec of attraction" << std::endl 
+    << "VARIABLES: " << std::endl 
+    << "finvec_x -->" << finvec_x << std::endl 
+    << "finvec_y -->" << finvec_y << std::endl 
+    << "_________________________________" << std::endl << "_________________________________" << std::endl);
+}
+//****************************************************************************************************
 
-        ROS_WARN_STREAM(std::endl << "angle is" << angles.yaw << std::endl);
+ROS_WARN_STREAM(std::endl << "angle is" << angles.yaw << std::endl);
 
         //*-*-*-*-*-*-*-*--*-*-*-*-*--*--*-*-*-*-*-*-*--*--*-*-*-*-*-*-*-*-*-*-*--*-*-*-*
         //------------------------------------------------------------------------------
         // VISUALIZATION //RVIZ visualiztion code // TODO make it a func
         //------------------------------------------------------------------------------
+
+        angles.yaw = atan(finvec_y / finvec_x) - M_PI * (finvec_x < 0);
+
+        // Если включено, вектор поворачивается в глобальную систему координат для визуализации и только. Передача финального вектора в глобальную систему идет в РЕГУЛЯТОРЕ
+        if(enable_turn_vectors_to_global)
+        {
+            finvec_x = finvec_x * cos(-angles.yaw) - finvec_y * sin(-angles.yaw);
+            finvec_y = finvec_x * sin(-angles.yaw) + finvec_y * cos(-angles.yaw);
+        }
+
+        tf2::Quaternion q;
+        q.setRPY(0, 0, angles.yaw);
+        // q.setRPY(0, 0, 0);
+        q.normalize();
+
         final_attraction_arrow.set_frame("laser"); //FRAME
         final_attraction_arrow.set_namespace("speeds_namespace2");
         final_attraction_arrow.set_id(34);
@@ -642,8 +692,14 @@ class   PotentialFieldAttractive
         {
             goal.publish_marker(); // PUB //RVIZ publish
         }
-
         //*-*-*-*-*-*-*-*--*-*-*-*-*--*--*-*-*-*-*-*-*--*--*-*-*-*-*-*-*-*-*-*-*--*-*-*-*
+
+        // Если включено, вектор поворачивается обратно в локальную систему координат. Передача финального вектора в глобальную систему идет в РЕГУЛЯТОРЕ
+        if(enable_turn_vectors_to_global)
+        {
+            finvec_x = finvec_x * cos(angles.yaw) - finvec_y * sin(angles.yaw);
+            finvec_y = finvec_x * sin(angles.yaw) + finvec_y * cos(angles.yaw);
+        }
     }
 };
 
@@ -730,19 +786,25 @@ class SpeedRegulator2D
         angles.yaw = (atan(y_regulated / x_regulated) - (M_PI) * (x_regulated < 0)); //BUG no vector inversion
         angles.yaw = (angles.yaw + 2 * M_PI) * (angles.yaw < - M_PI) + (angles.yaw) * (!(angles.yaw < - M_PI));
 
-        //DEBUG rinfo
-        //****************************************************************************************************
-        if(1)
+        if(enable_turn_vectors_to_global)
         {
-            ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
-            << "FUNCTION NAME: check attraction vector on regulation" << std::endl 
-            << "VARIABLES: "<< std::endl 
-            << "x -->" << x_regulated << std::endl 
-            << "y -->" << y_regulated << std::endl 
-            << "yaw -->" << angles.yaw << std::endl 
-            << "_________________________________" << std::endl << "_________________________________" << std::endl);
+            x_regulated = x_regulated * cos(-angles.yaw) - y_regulated * sin(-angles.yaw);
+            y_regulated = x_regulated * sin(-angles.yaw) + y_regulated * cos(-angles.yaw);
         }
-        //****************************************************************************************************
+
+//DEBUG rinfo
+//****************************************************************************************************
+if(1)
+{
+    ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
+    << "FUNCTION NAME: check attraction vector on regulation" << std::endl 
+    << "VARIABLES: "<< std::endl 
+    << "x -->" << x_regulated << std::endl 
+    << "y -->" << y_regulated << std::endl 
+    << "yaw -->" << angles.yaw << std::endl 
+    << "_________________________________" << std::endl << "_________________________________" << std::endl);
+}
+//****************************************************************************************************
 
         //CODEINFO Twist init and pub
         geometry_msgs::Twist twist;
@@ -782,27 +844,27 @@ class SpeedRegulator2D
                 }
                 else
                 {
-                    if(0)
-                    {
-                        ROS_ERROR_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
-                        << "FUNCTION NAME: angle calc" << std::endl 
-                        << "VARIABLES: " << std::endl 
-                        << "angles.yaw (atan)-->" << angles.yaw << std::endl << "y_regulated/x_regulated --> " << y_regulated/x_regulated << std::endl << "y_regulated --> " << y_regulated << std::endl << "x_regulated --> " << x_regulated << std::endl << std::endl 
-                        << "_________________________________" << std::endl << "_________________________________" << std::endl);
-                    }
-                    //DEBUG INFO rerror
-                    //****************************************************************************************************
-                    if(0)
-                    {
-                        ROS_ERROR_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
-                        << "FUNCTION NAME: some shit is happening" << std::endl 
-                        << "VARIABLES: "
-                        << "angles.yaw -->" << angles.yaw << std::endl 
-                        << "regulator_mode -->" << regulator_mode << std::endl 
-                        << "M_PI -->" << M_PI << std::endl 
-                        << "_________________________________" << std::endl << "_________________________________" << std::endl);
-                    }
-                    //****************************************************************************************************
+if(0)
+{
+    ROS_ERROR_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
+    << "FUNCTION NAME: angle calc" << std::endl 
+    << "VARIABLES: " << std::endl 
+    << "angles.yaw (atan)-->" << angles.yaw << std::endl << "y_regulated/x_regulated --> " << y_regulated/x_regulated << std::endl << "y_regulated --> " << y_regulated << std::endl << "x_regulated --> " << x_regulated << std::endl << std::endl 
+    << "_________________________________" << std::endl << "_________________________________" << std::endl);
+}
+//DEBUG INFO rerror
+//****************************************************************************************************
+if(0)
+{
+    ROS_ERROR_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
+    << "FUNCTION NAME: some shit is happening" << std::endl 
+    << "VARIABLES: "
+    << "angles.yaw -->" << angles.yaw << std::endl 
+    << "regulator_mode -->" << regulator_mode << std::endl 
+    << "M_PI -->" << M_PI << std::endl 
+    << "_________________________________" << std::endl << "_________________________________" << std::endl);
+}
+//****************************************************************************************************
                 }
             }
         }
@@ -840,24 +902,7 @@ class SpeedRegulator2D
 };
 
 
-// PRESETUP 
-int okcheck = 1;
-bool enable_attraction = 1;
-
-ros::Subscriber goal_sub;
-ros::Subscriber odom_sub; // HOOK odom usage
-
-// SUB catchPC creation
-ros::Subscriber catchPC_sub;
-ros::Publisher Catched_Cloud_and_PF;// PUB declaration
-
-PotentialFieldRepulsive *repulse_pointer;
-SpeedRegulator2D *regulator_pointer;
-PotentialFieldAttractive *attract_pointer;
-
-nav_msgs::Odometry *attract_odom_pointer;
-
-void callback(apf_la::reconfigure_potential_fieldsConfig &config, uint32_t level) 
+void dynamic_reconfigure_callback(apf_la::reconfigure_potential_fieldsConfig &config, uint32_t level) 
 {
 	repulse_pointer->C = config.repulsion_multiplier;
     repulse_pointer->maxRange = config.max_calculation_distance;
@@ -872,6 +917,7 @@ void callback(apf_la::reconfigure_potential_fieldsConfig &config, uint32_t level
     attract_pointer->publish_goal = config.RVIZ_goal;
 
     enable_attraction = config.enable_attraction;
+    enable_turn_vectors_to_global = config.enable_turn_vectors_to_global;
 
     regulator_pointer->regulator_mode = config.regulator_mode;
     regulator_pointer->max_linear_speed = config.max_linear_speed;
@@ -879,12 +925,11 @@ void callback(apf_la::reconfigure_potential_fieldsConfig &config, uint32_t level
     regulator_pointer->max_angle_to_accept_movement = config.max_angle_to_accept_movement;
 } 
 
-void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
+
+void got_scan_cb(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
 {
     repulse_pointer->calculate_repulse_vector(catchedCloud);
-    // regulator_pointer->set_sum_two_vectors_to_regulate_HALFOVERRIDE(repulse_pointer->finvec_x, repulse_pointer->finvec_y, attract_pointer->finvec_x, attract_pointer->finvec_y);
     regulator_pointer->set_regulate_one_vector_sum(repulse_pointer->finvec_x, repulse_pointer->finvec_y);
-    // regulator_pointer->regulate();
     regulator_pointer->repulsion_ready = 1;
     // ЭТО БЫЛ РАССЧЕТ ОТТАЛКИВАНИЯ
 
@@ -892,21 +937,20 @@ void got_scanCallback(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
     if(enable_attraction == 1)
     {
         regulator_pointer->set_regulate_one_vector_sum(attract_pointer->finvec_x, attract_pointer->finvec_y);
-        // regulator_pointer->regulate();
     }
     regulator_pointer->attraction_ready = 1;
     // ЭТО БЫЛ РАССЧЕТ ПРИТЯГИВАНИЯ
 }
 
 
-void got_goalCallback(const geometry_msgs::PoseStamped::ConstPtr& catched_goal)
+void got_goal_cb(const geometry_msgs::PoseStamped::ConstPtr& catched_goal)
 {
     attract_pointer->goal_x = catched_goal->pose.position.x;
     attract_pointer->goal_y = catched_goal->pose.position.y; // RETHINK
 }
 
 
-void got_odomCallback(const nav_msgs::Odometry::ConstPtr& catched_odom) // HOOK odom usage
+void got_odom_cb(const nav_msgs::Odometry::ConstPtr& catched_odom) // HOOK odom usage
 {
     attract_odom_pointer->pose.pose.position.x = catched_odom->pose.pose.position.x; // LINK IN id12-031-23 get parameter
     attract_odom_pointer->pose.pose.position.y = catched_odom->pose.pose.position.y; // LINK IN id12-031-23 get parameter 
@@ -919,9 +963,6 @@ void got_odomCallback(const nav_msgs::Odometry::ConstPtr& catched_odom) // HOOK 
 
 int main(int argc, char **argv)
 {
-    int attraction_is_ON = 0;
-    attraction_is_ON = 1;
-
     ros::init(argc, argv, "potential_fields");
 
     PotentialFieldRepulsive repulse;
@@ -932,37 +973,27 @@ int main(int argc, char **argv)
     regulator_pointer = &regulator;
     attract_pointer = &attract;
 
-    // nav_goal_Fbroadcaster = &real_nav_goal_Fbroadcaster;
-    // transformStamped = &real_transformStamped;
-
-    // tfBuffer = &real_tfBuffer;
-    // tfListener = &real_tfListener;
-    // transformStamped2 = &real_transformStamped2;
-
     attract_odom_pointer = &attract.odom;
 
     // NODEHANDLE
-    ros::NodeHandle cs;
-    ros::NodeHandle goal_nh;
-    ros::NodeHandle odom_get_nh;
+    ros::NodeHandle nh;
 
     //PUB adverts
-    catchPC_sub = cs.subscribe("/transPC", 10, got_scanCallback); // SUB catchPC sub
+    catchPC_sub = nh.subscribe("/transPC", 10, got_scan_cb); // SUB catchPC sub
 
-    if (attraction_is_ON == 1)
+    if (enable_attraction == 1)
     {
-        goal_sub = goal_nh.subscribe("/move_base_simple/goal", 1000, got_goalCallback);
+        goal_sub = nh.subscribe("/move_base_simple/goal", 1000, got_goal_cb);
     }
     
-    odom_sub = odom_get_nh.subscribe("/odom", 1000, got_odomCallback); //  HOOK odom usage
+    odom_sub = nh.subscribe("/odom", 1000, got_odom_cb); //  HOOK odom usage
 
     dynamic_reconfigure::Server<apf_la::reconfigure_potential_fieldsConfig> server;
     dynamic_reconfigure::Server<apf_la::reconfigure_potential_fieldsConfig>::CallbackType f;
-    f = boost::bind(&callback, _1, _2); 
+    f = boost::bind(&dynamic_reconfigure_callback, _1, _2); 
     server.setCallback(f);
 
     ros::spin();
-
 
     return 0;
 }   
