@@ -263,6 +263,7 @@ class EulerAngles {
     double pitch;
     double yaw;
 
+    // Функция для установки Эйлеровых углов по переданным параметрам
     void setRPY(float new_roll, float new_pitch, float new_yaw)
     {
         roll = new_roll;
@@ -270,11 +271,13 @@ class EulerAngles {
         yaw = new_yaw;
     }
 
-    void passRPY(tf2::Quaternion q)
+    // Функция для передачи Эйлеровых углов в вектор вращения
+    void setRPY_of_quaternion(tf2::Quaternion q)
     {
         q.setRPY(roll, pitch, yaw);
     }
 
+    // Функция для получения Эйлеровых углов из вектора вращения 
     void get_RPY_from_quaternion(tf2::Quaternion q)
     {
         tf2::Matrix3x3 m(q);
@@ -665,7 +668,7 @@ ROS_WARN_STREAM(std::endl << "angle is" << angles.yaw << std::endl);
         }
 
         tf2::Quaternion q;
-        angles.passRPY(q);
+        angles.setRPY_of_quaternion(q);
         // q.setRPY(0, 0, 0);
         q.normalize();
 
@@ -811,6 +814,20 @@ class SpeedRegulator2D
         qodom.setZ(global_odom.pose.pose.orientation.z);
         qodom.setW(global_odom.pose.pose.orientation.w);
         odom_orientation.get_RPY_from_quaternion(qodom);
+
+//DEBUG rinfo
+//****************************************************************************************************
+if(1)
+{
+    ROS_WARN_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
+    << "FUNCTION NAME: check attraction vector on regulation" << std::endl 
+    << "VARIABLES: "<< std::endl 
+    << "x -->" << x_regulated << std::endl 
+    << "y -->" << y_regulated << std::endl 
+    << "yaw -->" << angles.yaw << std::endl 
+    << "_________________________________" << std::endl << "_________________________________" << std::endl);
+}
+//****************************************************************************************************
 
         if(enable_turn_vectors_to_global)
         {
