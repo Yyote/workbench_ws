@@ -28,29 +28,26 @@
 
 
 // PRESETUP
-bool enable_turn_vectors_to_global = true;
-bool enable_attraction = true;
+bool enable_turn_vectors_to_global = 1;
+bool enable_attraction = 1;
 int okcheck = 1;
+nav_msgs::Odometry global_odom;
 
 ros::Subscriber goal_sub;
 ros::Subscriber odom_sub; // HOOK odom usage
 
 // SUB catchPC creation
 ros::Subscriber catchPC_sub;
-ros::Publisher Catched_Cloud_and_PF;// PUB declaration
+ros::Publisher Catched_Cloud_and_PF;// PUBLISHER declaration
 
-PotentialFieldRepulsive *repulse_pointer;
-SpeedRegulator2D *regulator_pointer;
-PotentialFieldAttractive *attract_pointer;
+ros::NodeHandle* nh_pointer;
 
-nav_msgs::Odometry *attract_odom_pointer;
-
-
+// Класс для работы с маркерами
 class MarkerHandler {
     private:
     visualization_msgs::Marker marker;
-    ros::NodeHandle rvizor;
     ros::Publisher marker_pub;
+    ros::NodeHandle* nh_pointer;
 
     public:
     std::string module_name;
@@ -61,16 +58,23 @@ class MarkerHandler {
         module_name = "default";
     }
 
-    MarkerHandler(std::string pub_topic) 
+    // MarkerHandler(std::string pub_topic) 
+    // {
+    //     marker.header.stamp = ros::Time::now();
+    //     marker_pub = rvizor.advertise<visualization_msgs::Marker>(pub_topic, 1000);
+    //     module_name = "default";
+    // }
+
+    void _init(ros::NodeHandle* nh, std::string pub_topic)
     {
-        marker.header.stamp = ros::Time::now();
-        marker_pub = rvizor.advertise<visualization_msgs::Marker>(pub_topic, 1000);
-        module_name = "default";
+        nh_pointer = nh;
+        advertise_to_topic(pub_topic);
     }
 
     void advertise_to_topic(std::string pub_topic)
     {
-        marker_pub = rvizor.advertise<visualization_msgs::Marker>(pub_topic, 1000);
+        // marker_pub = rvizor.advertise<visualization_msgs::Marker>(pub_topic, 1000);
+        marker_pub = nh_pointer->advertise<visualization_msgs::Marker>(pub_topic, 1000);
     }
 
     void set_frame(std::string frame_id)
@@ -245,7 +249,7 @@ class MarkerHandler {
     }
 };
 
-
+// Класс для работы с Эйлеровыми углами
 class EulerAngles {
     public:
     EulerAngles()
@@ -259,25 +263,38 @@ class EulerAngles {
     double pitch;
     double yaw;
 
+    // Функция для установки Эйлеровых углов по переданным параметрам
     void setRPY(float new_roll, float new_pitch, float new_yaw)
     {
         roll = new_roll;
         pitch = new_pitch;
         yaw = new_yaw;
     }
+
+    // Функция для передачи Эйлеровых углов в вектор вращения
+    void setRPY_of_quaternion(tf2::Quaternion q)
+    {
+        q.setRPY(roll, pitch, yaw);
+    }
+
+    // Функция для получения Эйлеровых углов из вектора вращения 
+    void get_RPY_from_quaternion(tf2::Quaternion q)
+    {
+        tf2::Matrix3x3 m(q);
+        m.getRPY(roll, pitch, yaw);
+    }
 };
 
-
+// Потенциальные поля отталкивания от видимых точек на лазерскане
 class PotentialFieldRepulsive {
     private:
     // CODEINFO Константы
 
-    std::string final_vel_arrow_topic;
     EulerAngles angles;
+    ros::Publisher vis_arr_pub;
+
     MarkerHandler final_repulsion_arrow;
     MarkerHandler visibility_circle;
-    std::string visibility_circle_topic;
-    ros::Publisher vis_arr_pub;
 
     int shutdown()
     {
@@ -287,69 +304,71 @@ class PotentialFieldRepulsive {
     }
 
     public:
-    float maxRange; //max range to calculate
-    float minRange; //min range to calculate
-    double C; // мультипликатор
+    double MAX_RANGE; //max range to calculate
+    double MIN_RANGE; //min range to calculate
+    double MULTIPLICATOR; // мультипликатор
 
-    bool publish_rviz_visualization_arrow;
-    bool publish_rviz_visualization_debug_cloud;
-    bool publish_rviz_visualization_visibility_circle;
+    bool PUBLISH_FINAL_REPULSION_ARROW;
+    bool PUBLISH_VISIBLE_POINTS;
+    bool PUBLISH_VISIBILITY_CIRCLE;
 
     double finvec_x;
     double finvec_y;
 
-    PotentialFieldRepulsive() 
+    PotentialFieldRepulsive(ros::NodeHandle* nh_pointer) 
     {
-        visibility_circle_topic = "/visibility_circle";
-        visibility_circle.advertise_to_topic(visibility_circle_topic);
-        C = 0.0025;
-        minRange = 0.1;
-        maxRange = 1.5;
+        MULTIPLICATOR = 0.0025;
+        MIN_RANGE = 0.1;
+        MAX_RANGE = 1.5;
+        
         finvec_x = 0;
         finvec_y = 0;
         angles.roll = 0;
         angles.pitch = 0;
         angles.yaw = 0;     
-        final_vel_arrow_topic = "/potential_field_REPULSION";
-        final_repulsion_arrow.advertise_to_topic(final_vel_arrow_topic);
-        vis_arr_pub = debug_cloud_nh.advertise<sensor_msgs::PointCloud>("/debug_points", 1000);
-        publish_rviz_visualization_arrow = 1;
-        publish_rviz_visualization_debug_cloud = 1;
-        publish_rviz_visualization_visibility_circle = 1;
+        
+        PUBLISH_FINAL_REPULSION_ARROW = 1;
+        PUBLISH_VISIBLE_POINTS = 1;
+        PUBLISH_VISIBILITY_CIRCLE = 1;
+        
+        vis_arr_pub = nh_pointer->advertise<sensor_msgs::PointCloud>("/debug_points", 1000);
+        
+        final_repulsion_arrow._init(nh_pointer, "/potential_field_repulsion_marker");
+        visibility_circle._init(nh_pointer, "/visibility_circle_marker");
     }   
 
-    void calculate_repulse_vector(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
+    void calculate_repulse_vector(const sensor_msgs::PointCloud::ConstPtr& catched_cloud)
     {
-        sensor_msgs::PointCloud debug_cloud; // LOG NEW debug_cloud
+        sensor_msgs::PointCloud visible_points_cloud; // LOG NEW visible_points_cloud
 
-        debug_cloud.points.resize(catchedCloud->points.capacity()); // LOG NEW debug cloud
-        debug_cloud.header.stamp = ros::Time::now();
-        debug_cloud.header.frame_id = "laser"; //FRAME
+        visible_points_cloud.points.resize(catched_cloud->points.capacity()); // LOG NEW debug cloud
+        visible_points_cloud.header.stamp = ros::Time::now();
+        visible_points_cloud.header.frame_id = "laser"; //FRAME
 
         finvec_y = 0;
         finvec_x = 0;
 
         // CODEINFO
         // Calculate average x and y and make a vector of retraction from them
-        for(int i = 0; i < catchedCloud->points.capacity(); i++)
+        for(int i = 0; i < catched_cloud->points.capacity(); i++)
         {
             //************************    PSEUDO CONSTS     **************************
-            double vector_length = sqrt( pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2) );
+            double vector_length = sqrt( pow(catched_cloud->points.at(i).x, 2) + pow(catched_cloud->points.at(i).y, 2) );
             //************************************************************************
 
             //************************    LOCAL VARS     *****************************
             double tmpvec_x, tmpvec_y;
             //************************************************************************
 
-            debug_cloud.points.at(i).x = NULL;
-            debug_cloud.points.at(i).y = NULL;
-            debug_cloud.points.at(i).z = NULL;
+            visible_points_cloud.points.at(i).x = NULL;
+            visible_points_cloud.points.at(i).y = NULL;
+            visible_points_cloud.points.at(i).z = NULL;
 
             int point_step = 1; // LOG NEW added point_step variable to skip points in such way that it won't effect the amplitude of the resulting vector
 
             if(i % point_step == 0)
             {
-                if(!( pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2) >= maxRange * maxRange || pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2) <= minRange * minRange))  // Проверка на попадание в зону видимости
+                if(!( pow(catched_cloud->points.at(i).x, 2) + pow(catched_cloud->points.at(i).y, 2) >= MAX_RANGE * MAX_RANGE || pow(catched_cloud->points.at(i).x, 2) + pow(catched_cloud->points.at(i).y, 2) <= MIN_RANGE * MIN_RANGE))  // Проверка на попадание в зону видимости
                 {
 //DEBUG INFO rinfo
 //****************************************************************************************************
@@ -358,21 +377,21 @@ if(0)
     ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
     << "FUNCTION NAME: zero fight" << std::endl 
     << "VARIABLES: "
-    << "vector length -->"  << sqrt(pow(catchedCloud->points.at(i).x, 2) + pow(catchedCloud->points.at(i).y, 2)) << std::endl
-    << "maxRange -->"  << maxRange << std::endl 
+    << "vector length -->"  << sqrt(pow(catched_cloud->points.at(i).x, 2) + pow(catched_cloud->points.at(i).y, 2)) << std::endl
+    << "MAX_RANGE -->"  << MAX_RANGE << std::endl 
     << "_________________________________" << std::endl << "_________________________________" << std::endl);
 }
 //****************************************************************************************************
 
-                    if (catchedCloud->points.at(i).x != 0)
+                    if (catched_cloud->points.at(i).x != 0)
                     {
-                        tmpvec_y = - C * point_step * ( (1 / (vector_length) ) * catchedCloud->points.at(i).y / vector_length)/* - (maxRange / sqrt(2))*/ ; // BUG check atan limits and adjust the formula
-                        tmpvec_x = - C * point_step * ( (1 / (vector_length) ) * catchedCloud->points.at(i).x / vector_length)/* - (maxRange / sqrt(2))*/; // SOLVED change the formula for the pithagorean
+                        tmpvec_y = - MULTIPLICATOR * point_step * ( (1 / (vector_length) ) * catched_cloud->points.at(i).y / vector_length)/* - (MAX_RANGE / sqrt(2))*/ ; // BUG check atan limits and adjust the formula
+                        tmpvec_x = - MULTIPLICATOR * point_step * ( (1 / (vector_length) ) * catched_cloud->points.at(i).x / vector_length)/* - (MAX_RANGE / sqrt(2))*/; // SOLVED change the formula for the pithagorean
                     }
                     else
                     {
-                        tmpvec_y = C * point_step * ( (1 / vector_length) * sin(atan(catchedCloud->points.at(i).x / catchedCloud->points.at(i).y))/* - (maxRange / sqrt(2))*/ ); // BUG check atan limits and adjust the formula
-                        tmpvec_x = C * point_step * ( (1 / vector_length) * cos(atan(catchedCloud->points.at(i).x / catchedCloud->points.at(i).y))/* - (maxRange / sqrt(2))*/ ); // SOLVED change the formula for the pithagorean
+                        tmpvec_y = MULTIPLICATOR * point_step * ( (1 / vector_length) * sin(atan(catched_cloud->points.at(i).x / catched_cloud->points.at(i).y))/* - (MAX_RANGE / sqrt(2))*/ ); // BUG check atan limits and adjust the formula
+                        tmpvec_x = MULTIPLICATOR * point_step * ( (1 / vector_length) * cos(atan(catched_cloud->points.at(i).x / catched_cloud->points.at(i).y))/* - (MAX_RANGE / sqrt(2))*/ ); // SOLVED change the formula for the pithagorean
                     }
 
 //DEBUG INFO rwarn
@@ -382,17 +401,17 @@ if(0)
     ROS_WARN_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
     << "FUNCTION NAME: tmpvec_y check" << std::endl 
     << "VARIABLES: " << std::endl
-    << "catched point y -->"  << catchedCloud->points.at(i).y << std::endl 
-    << "catched point x -->"  << catchedCloud->points.at(i).x << std::endl 
+    << "catched point y -->"  << catched_cloud->points.at(i).y << std::endl 
+    << "catched point x -->"  << catched_cloud->points.at(i).x << std::endl 
     << "tmpvec_y -->"  << tmpvec_y << std::endl 
-    << "sin(atan(catchedCloud->points.at(i).y / catchedCloud->points.at(i).x)) * (1 / vec_length) -->"  << (1 / vector_length) * sin(atan(catchedCloud->points.at(i).y / catchedCloud->points.at(i).x)) << std::endl 
+    << "sin(atan(catched_cloud->points.at(i).y / catched_cloud->points.at(i).x)) * (1 / vec_length) -->"  << (1 / vector_length) * sin(atan(catched_cloud->points.at(i).y / catched_cloud->points.at(i).x)) << std::endl 
     << "tmpvec_x -->"  << tmpvec_x << std::endl 
-    << "cos(atan(catchedCloud->points.at(i).y / catchedCloud->points.at(i).x)) * (1 / vec_length) -->"  << (1 / vector_length) * cos(atan(catchedCloud->points.at(i).y / catchedCloud->points.at(i).x)) << std::endl 
+    << "cos(atan(catched_cloud->points.at(i).y / catched_cloud->points.at(i).x)) * (1 / vec_length) -->"  << (1 / vector_length) * cos(atan(catched_cloud->points.at(i).y / catched_cloud->points.at(i).x)) << std::endl 
     << "_________________________________" << std::endl << "_________________________________" << std::endl);
 }
 //****************************************************************************************************
 
-                    if(catchedCloud->points.at(i).x > 0 && tmpvec_x > 0)
+                    if(catched_cloud->points.at(i).x > 0 && tmpvec_x > 0)
                     {
                         tmpvec_x = -tmpvec_x;
                     }
@@ -400,14 +419,14 @@ if(0)
                     finvec_x += tmpvec_x;
                     finvec_y += tmpvec_y;
 
-                    debug_cloud.points.at(i).x = catchedCloud->points.at(i).x;
-                    debug_cloud.points.at(i).y = catchedCloud->points.at(i).y; // LOG NEW debug_cloud
-                    debug_cloud.points.at(i).z = catchedCloud->points.at(i).z;
+                    visible_points_cloud.points.at(i).x = catched_cloud->points.at(i).x;
+                    visible_points_cloud.points.at(i).y = catched_cloud->points.at(i).y; // LOG NEW visible_points_cloud
+                    visible_points_cloud.points.at(i).z = catched_cloud->points.at(i).z;
                 }
 
-                if(publish_rviz_visualization_debug_cloud == 1)
+                if(PUBLISH_VISIBLE_POINTS == 1)
                 {
-                    vis_arr_pub.publish(debug_cloud); //PUB vis_arr debug_cloud
+                    vis_arr_pub.publish(visible_points_cloud); //PUBLISHER vis_arr visible_points_cloud
                 }
 
                 if(0)
@@ -421,8 +440,8 @@ if(0)
 {
     ROS_INFO_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl << "FUNCTION NAME: average coordinates calculation" << std::endl 
     << "VARIABLES: list of vars" << "\ncloud capacity, finvec_x and y, vector length, i:" << std::endl 
-    << catchedCloud->points.capacity() << " "  << finvec_x << " " << finvec_y << " " << sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)) << " " << i << std::endl 
-    << "catchedCloud->points.at(i).x --> " << catchedCloud->points.at(i).x << std::endl << "catchedCloud->points.at(i).y --> " << catchedCloud->points.at(i).y << std::endl 
+    << catched_cloud->points.capacity() << " "  << finvec_x << " " << finvec_y << " " << sqrt(pow(finvec_x, 2) + pow(finvec_y, 2)) << " " << i << std::endl 
+    << "catched_cloud->points.at(i).x --> " << catched_cloud->points.at(i).x << std::endl << "catched_cloud->points.at(i).y --> " << catched_cloud->points.at(i).y << std::endl 
     <<"_________________________________" << std::endl << "_________________________________" << std::endl);
 }
 
@@ -487,9 +506,9 @@ if(0)
         final_repulsion_arrow.set_color(1.0, 0.0, 1.0, 0.0);
         // final_repulsion_arrow.debug_info("Стрелочка");
 
-        if(publish_rviz_visualization_arrow == 1)
+        if(PUBLISH_FINAL_REPULSION_ARROW == 1)
         {
-            final_repulsion_arrow.publish_marker(); // PUB //RVIZ publish
+            final_repulsion_arrow.publish_marker(); // PUBLISHER //RVIZ publish
         }
 
         //*-*-*-*-*-*-*-*--*-*-*-*-*--*--*-*-*-*-*-*-*--*--*-*-*-*-*-*-*-*-*-*-*--*-*-*-*
@@ -505,12 +524,12 @@ if(0)
         visibility_circle.set_id(2);
         visibility_circle.set_type(3);
         visibility_circle.set_pose(0, 0, -0.2, q2);
-        visibility_circle.set_scale(2 * maxRange, 2 * maxRange, 0.05);
+        visibility_circle.set_scale(2 * MAX_RANGE, 2 * MAX_RANGE, 0.05);
         visibility_circle.set_color(0.3, 0.0, 0.0, 1.0);
 
-        if(publish_rviz_visualization_visibility_circle == 1)
+        if(PUBLISH_VISIBILITY_CIRCLE == 1)
         {
-            visibility_circle.publish_marker(); // PUB //RVIZ publish
+            visibility_circle.publish_marker(); // PUBLISHER //RVIZ publish
         }
         //* - * - * - * - * - * - * - * - * - * - * - */ - */ - * - * - * - * - *
         //* - * - * - * - * - * - * - * - * - * - * - */ - */ - * - * - * - * - *
@@ -524,7 +543,7 @@ if(0)
     }
 };
 
-
+// Потенциальные поля притяжения к целевой точке
 class   PotentialFieldAttractive
 {
     private:
@@ -534,8 +553,7 @@ class   PotentialFieldAttractive
     double tmpvec_y = 0;
 
     public:
-    double C;
-    nav_msgs::Odometry odom; // HOOK odom usage
+    double MULTIPLICATOR;
     double goal_x /*= 0*/; // Полученная координата х
     double goal_y /*= 0*/; // Полученная у
     double finvec_x; // Рассчитанная точка
@@ -543,26 +561,26 @@ class   PotentialFieldAttractive
     MarkerHandler final_attraction_arrow;
     MarkerHandler goal;
 
-    float max_vector;
-    bool publish_final_attraction_arrow;
-    bool publish_goal;
+    float MAX_VECTOR;
+    bool PUBLISH_FINAL_ATRACTION_ARROW;
+    bool PUBLISH_GOAL;
     // IDEA min_vector, goal_accomplished_range;
 
     PotentialFieldAttractive()
     {
-        C = 0.2;   
-        max_vector = 0.3;
-        // tf2_ros::Buffer tfBuffer;  
-        // tf2_ros::TransformListener tfListener(tfBuffer);
-        // geometry_msgs::TransformStamped transformStamped;
+        MULTIPLICATOR = 0.2;   
+        MAX_VECTOR = 0.3;
+
         goal_x = NULL;
         goal_y = NULL;
-        publish_final_attraction_arrow = 1;
-        publish_goal = 1;
         finvec_x = 0;
         finvec_y = 0;
-        final_attraction_arrow.advertise_to_topic("/potential_field_ATTRACTION");
-        goal.advertise_to_topic("/goal_marker");
+        
+        PUBLISH_FINAL_ATRACTION_ARROW = 1;
+        PUBLISH_GOAL = 1;
+        
+        final_attraction_arrow._init(nh_pointer, "/potential_field_attraction_marker");
+        goal._init(nh_pointer, "/goal_marker");
     }
 
     void calculate_attract_vector()
@@ -572,45 +590,44 @@ class   PotentialFieldAttractive
 
         if(goal_x != NULL && goal_y != NULL)
         {
-            tmpvec_x = goal_x - odom.pose.pose.position.x;
-            tmpvec_y = goal_y - odom.pose.pose.position.y;
+            tmpvec_x = goal_x - global_odom.pose.pose.position.x;
+            tmpvec_y = goal_y - global_odom.pose.pose.position.y;
         }
 
         // tf2::Quaternion q(odom.pose.pose.orientation.x, odom.pose.pose.orientation.y, odom.pose.pose.orientation.z, odom.pose.pose.orientation.w); // HOOK odom usage
 
         vector_length = sqrt((tmpvec_x * tmpvec_x) + (tmpvec_y * tmpvec_y));
 
-        finvec_y = C * ((vector_length) * (tmpvec_y / vector_length))/* - (maxRange / sqrt(2))*/; // BUG check atan limits and adjust the formula
-        finvec_x = C * ((vector_length) * (tmpvec_x / vector_length))/* - (maxRange / sqrt(2))*/; // SOLVED change the formula for the pithagorean
+        finvec_y = MULTIPLICATOR * ((vector_length) * (tmpvec_y / vector_length))/* - (MAX_RANGE / sqrt(2))*/; // BUG check atan limits and adjust the formula
+        finvec_x = MULTIPLICATOR * ((vector_length) * (tmpvec_x / vector_length))/* - (MAX_RANGE / sqrt(2))*/; // SOLVED change the formula for the pithagorean
 
         tmpvec_x = finvec_x;
         tmpvec_y = finvec_y;
 
         tf2::Quaternion qodom;
-        tf2::fromMsg(odom.pose.pose.orientation, qodom);
-        tf2::Matrix3x3 m(qodom);
-        m.getRPY(angles.roll, angles.pitch, angles.yaw);
+        tf2::fromMsg(global_odom.pose.pose.orientation, qodom);
+        angles.get_RPY_from_quaternion(qodom);
 
         angles.yaw = -angles.yaw;
 
         finvec_x = tmpvec_x * cos(angles.yaw) - tmpvec_y * sin(angles.yaw);
         finvec_y = tmpvec_x * sin(angles.yaw) + tmpvec_y * cos(angles.yaw);
 
-        if (finvec_x > max_vector || finvec_x < - max_vector)
+        if (finvec_x > MAX_VECTOR || finvec_x < - MAX_VECTOR)
         {
             double tmp;
             tmp = finvec_x;
-            finvec_x = max_vector * (finvec_x > max_vector) - max_vector * (finvec_x < max_vector);
+            finvec_x = MAX_VECTOR * (finvec_x > MAX_VECTOR) - MAX_VECTOR * (finvec_x < MAX_VECTOR);
             tmp = finvec_x / tmp;
             finvec_y = finvec_y * tmp;
         }
 
 
-        if (finvec_y > max_vector || finvec_y < - max_vector)
+        if (finvec_y > MAX_VECTOR || finvec_y < - MAX_VECTOR)
         {
             double tmp;
             tmp = finvec_y;
-            finvec_y = max_vector * (finvec_y > max_vector) - max_vector * (finvec_y < max_vector);
+            finvec_y = MAX_VECTOR * (finvec_y > MAX_VECTOR) - MAX_VECTOR * (finvec_y < MAX_VECTOR);
             tmp = finvec_y / tmp;
             finvec_x = finvec_x * tmp;
         }
@@ -651,7 +668,7 @@ ROS_WARN_STREAM(std::endl << "angle is" << angles.yaw << std::endl);
         }
 
         tf2::Quaternion q;
-        q.setRPY(0, 0, angles.yaw);
+        angles.setRPY_of_quaternion(q);
         // q.setRPY(0, 0, 0);
         q.normalize();
 
@@ -667,9 +684,9 @@ ROS_WARN_STREAM(std::endl << "angle is" << angles.yaw << std::endl);
         final_attraction_arrow.set_color(1.0, 1.0, 1.0, 0.0);
         // final_attraction_arrow.debug_info("Arrow");
 
-        if(publish_final_attraction_arrow == 1)
+        if(PUBLISH_FINAL_ATRACTION_ARROW == 1)
         {
-            final_attraction_arrow.publish_marker(); // PUB //RVIZ publish
+            final_attraction_arrow.publish_marker(); // PUBLISHER //RVIZ publish
         }
 
         tf2::Quaternion q1;
@@ -688,9 +705,9 @@ ROS_WARN_STREAM(std::endl << "angle is" << angles.yaw << std::endl);
         goal.set_color(1.0, 1.0, 0.0, 0.0);
         // goal.debug_info("Goal");
 
-        if(publish_goal == 1)
+        if(PUBLISH_GOAL == 1)
         {
-            goal.publish_marker(); // PUB //RVIZ publish
+            goal.publish_marker(); // PUBLISHER //RVIZ publish
         }
         //*-*-*-*-*-*-*-*--*-*-*-*-*--*--*-*-*-*-*-*-*--*--*-*-*-*-*-*-*-*-*-*-*--*-*-*-*
 
@@ -703,39 +720,43 @@ ROS_WARN_STREAM(std::endl << "angle is" << angles.yaw << std::endl);
     }
 };
 
-
+// Регулятор скоростей. Принимает вектора из потенциальных полей, суммирует их и возвращает скорость
 class SpeedRegulator2D
 {
     private:
     double x_regulated;
     double y_regulated;
     ros::Publisher speed_pub;
-    ros::NodeHandle vlcts;
     MarkerHandler total_arrow;
+    ros::Publisher potential_fields_vector_pub;
 
     public:
-    double max_linear_speed;
-    double max_angular_speed;
-    double max_angle_to_accept_movement;
-    int regulator_mode; //1 - wheeled bot safe, 2 - quadrocopter, 3 - y is turning by yaw
+    double MAX_LINEAR_SPEED;
+    double MAX_ANGULAR_SPEED;
+    double MAX_ANGLE_TO_ACCEPT_MOVEMENT;
+    int REGULATOR_MODE; //1 - wheeled bot safe, 2 - quadrocopter, 3 - y is turning by yaw
     int repulsion_ready;
     int attraction_ready;
-    int publish_total_arrow;
+    int PUBLISH_TOTAL_ARROW;
 
     SpeedRegulator2D()
     {
-        regulator_mode = 3;
-        max_angle_to_accept_movement = 0.1;
-        publish_total_arrow = 1;
-        max_linear_speed = 0.2;
-        max_angular_speed = 0.75;
+        REGULATOR_MODE = 3;
+        MAX_ANGLE_TO_ACCEPT_MOVEMENT = 0.1;
+        PUBLISH_TOTAL_ARROW = 1;
+        MAX_LINEAR_SPEED = 0.2;
+        MAX_ANGULAR_SPEED = 0.75;
 
         x_regulated = 0;
         y_regulated = 0;
         repulsion_ready = 0;
         attraction_ready = 0;
-        total_arrow.advertise_to_topic("/final_PF_arrow");
-        speed_pub = vlcts.advertise<geometry_msgs::Twist>("/cmd_vel", 1000);
+
+        total_arrow._init(nh_pointer, "/total_potential_fields_arrow");
+        // total_arrow.advertise_to_topic("/final_PF_arrow");
+        
+        speed_pub = nh_pointer->advertise<geometry_msgs::Twist>("/cmd_vel", 1000);
+        potential_fields_vector_pub = nh_pointer->advertise<geometry_msgs::Vector3Stamped>("/potential_field_result_vector", 1000);
     }
 
     void set_regulate_one_vector(double x, double y)
@@ -756,7 +777,7 @@ class SpeedRegulator2D
     {
         x_regulated += x;
         y_regulated += y;
-        if (repulsion_ready == 1 && attraction_ready == 1 || regulator_mode == 2 && repulsion_ready == 1)
+        if (repulsion_ready == 1 && attraction_ready == 1 || REGULATOR_MODE == 2 && repulsion_ready == 1)
         {
             regulate();
         }
@@ -786,10 +807,32 @@ class SpeedRegulator2D
         angles.yaw = (atan(y_regulated / x_regulated) - (M_PI) * (x_regulated < 0)); //BUG no vector inversion
         angles.yaw = (angles.yaw + 2 * M_PI) * (angles.yaw < - M_PI) + (angles.yaw) * (!(angles.yaw < - M_PI));
 
+        EulerAngles odom_orientation;
+        tf2::Quaternion qodom;
+        qodom.setX(global_odom.pose.pose.orientation.x);
+        qodom.setY(global_odom.pose.pose.orientation.y);
+        qodom.setZ(global_odom.pose.pose.orientation.z);
+        qodom.setW(global_odom.pose.pose.orientation.w);
+        odom_orientation.get_RPY_from_quaternion(qodom);
+
+//DEBUG rinfo
+//****************************************************************************************************
+if(1)
+{
+    ROS_WARN_STREAM(std::endl << "_________________________________" << std::endl << "_________________________________" << std::endl 
+    << "FUNCTION NAME: check attraction vector on regulation" << std::endl 
+    << "VARIABLES: "<< std::endl 
+    << "x -->" << x_regulated << std::endl 
+    << "y -->" << y_regulated << std::endl 
+    << "yaw -->" << angles.yaw << std::endl 
+    << "_________________________________" << std::endl << "_________________________________" << std::endl);
+}
+//****************************************************************************************************
+
         if(enable_turn_vectors_to_global)
         {
-            x_regulated = x_regulated * cos(-angles.yaw) - y_regulated * sin(-angles.yaw);
-            y_regulated = x_regulated * sin(-angles.yaw) + y_regulated * cos(-angles.yaw);
+            x_regulated = x_regulated * cos(-odom_orientation.yaw) - y_regulated * sin(-odom_orientation.yaw);
+            y_regulated = x_regulated * sin(-odom_orientation.yaw) + y_regulated * cos(-odom_orientation.yaw);
         }
 
 //DEBUG rinfo
@@ -808,7 +851,7 @@ if(1)
 
         //CODEINFO Twist init and pub
         geometry_msgs::Twist twist;
-        if (regulator_mode == 1 || regulator_mode == 2)
+        if (REGULATOR_MODE == 1 || REGULATOR_MODE == 2)
         {
             if(sqrt(pow(x_regulated, 2) + pow(y_regulated, 2)) < 0.01)
             {
@@ -819,14 +862,14 @@ if(1)
             }
             else
             {
-                if(abs(angles.yaw) - max_angle_to_accept_movement < 0)
+                if(abs(angles.yaw) - MAX_ANGLE_TO_ACCEPT_MOVEMENT < 0)
                 {
                     twist.angular.z = 0;
-                    twist.linear.x = x_regulated * (x_regulated < max_linear_speed) + max_linear_speed * (x_regulated >= max_linear_speed);
-                    twist.linear.y = y_regulated * (y_regulated < max_linear_speed) + max_linear_speed * (y_regulated >= max_linear_speed);
+                    twist.linear.x = x_regulated * (x_regulated < MAX_LINEAR_SPEED) + MAX_LINEAR_SPEED * (x_regulated >= MAX_LINEAR_SPEED);
+                    twist.linear.y = y_regulated * (y_regulated < MAX_LINEAR_SPEED) + MAX_LINEAR_SPEED * (y_regulated >= MAX_LINEAR_SPEED);
                 }
 
-                else if (angles.yaw > 0 && angles.yaw < M_PI && regulator_mode == 1)
+                else if (angles.yaw > 0 && angles.yaw < M_PI && REGULATOR_MODE == 1)
                 {
                     // ROS_ERROR_STREAM(std::endl << "Angle is correlating badly" << std::endl << "tan --> " << y_regulated/x_regulated << std::endl << "yaw --> " << angles.yaw * 180 / M_PI << " degrees." << std::endl);
                     twist.angular.z = 0.4;
@@ -834,7 +877,7 @@ if(1)
                     twist.linear.y = 0;
                 }
 
-                else if (angles.yaw < 0 && angles.yaw >= -M_PI && regulator_mode == 1)
+                else if (angles.yaw < 0 && angles.yaw >= -M_PI && REGULATOR_MODE == 1)
                 {
                     // ROS_ERROR_STREAM(std::endl << "Angle is correlating badly" << std::endl << "tan --> " << y_regulated/x_regulated << std::endl << "yaw --> " << angles.yaw * 180 / M_PI << " degrees." << std::endl);
                     twist.angular.z = -0.4;
@@ -860,7 +903,7 @@ if(0)
     << "FUNCTION NAME: some shit is happening" << std::endl 
     << "VARIABLES: "
     << "angles.yaw -->" << angles.yaw << std::endl 
-    << "regulator_mode -->" << regulator_mode << std::endl 
+    << "REGULATOR_MODE -->" << REGULATOR_MODE << std::endl 
     << "M_PI -->" << M_PI << std::endl 
     << "_________________________________" << std::endl << "_________________________________" << std::endl);
 }
@@ -869,10 +912,21 @@ if(0)
             }
         }
 
-        else if (regulator_mode == 3)
+        else if (REGULATOR_MODE == 3)
         {
-            twist.angular.z = y_regulated * (y_regulated < max_angular_speed) + max_angular_speed * (!(y_regulated < max_angular_speed));
-            twist.linear.x = x_regulated  * (x_regulated < max_linear_speed) + max_linear_speed * (x_regulated >= max_linear_speed);
+            twist.angular.z = y_regulated * (y_regulated < MAX_ANGULAR_SPEED) + MAX_ANGULAR_SPEED * (!(y_regulated < MAX_ANGULAR_SPEED));
+            twist.linear.x = x_regulated  * (x_regulated < MAX_LINEAR_SPEED) + MAX_LINEAR_SPEED * (x_regulated >= MAX_LINEAR_SPEED);
+        }
+
+        else if(REGULATOR_MODE == 4)
+        {
+            geometry_msgs::Vector3Stamped vector;
+            
+            vector.vector.x = x_regulated;
+            vector.vector.y = y_regulated;
+            vector.vector.z = 0;
+
+            potential_fields_vector_pub.publish(vector);
         }
 
         tf2::Quaternion q_finArrow;
@@ -887,12 +941,12 @@ if(0)
         total_arrow.set_scale(sqrt(pow(x_regulated, 2) + pow(y_regulated, 2)), 0.05, 0.05);
         total_arrow.set_color(1.0, 0.0, 1.0, 1.0);
 
-        if(publish_total_arrow == 1)
+        if(PUBLISH_TOTAL_ARROW == 1)
         {
-            total_arrow.publish_marker(); // PUB //RVIZ publish
+            total_arrow.publish_marker(); // PUBLISHER //RVIZ publish
         }
 
-        speed_pub.publish(twist); //PUB twist
+        speed_pub.publish(twist); //PUBLISHER twist
         x_regulated = 0;
         y_regulated = 0;
 
@@ -901,34 +955,39 @@ if(0)
     }
 };
 
+PotentialFieldRepulsive *repulse_pointer;
+SpeedRegulator2D *regulator_pointer;
+PotentialFieldAttractive *attract_pointer;
 
+
+// Колбэк динамической реконфигурации
 void dynamic_reconfigure_callback(apf_la::reconfigure_potential_fieldsConfig &config, uint32_t level) 
 {
-	repulse_pointer->C = config.repulsion_multiplier;
-    repulse_pointer->maxRange = config.max_calculation_distance;
-    repulse_pointer->minRange = config.min_calculation_distance;
-    repulse_pointer->publish_rviz_visualization_arrow = config.RVIZ_repulsion_arrow;
-    repulse_pointer->publish_rviz_visualization_debug_cloud = config.RVIZ_calculated_points_cloud;
-    repulse_pointer->publish_rviz_visualization_visibility_circle = config.RVIZ_visibility_circle;
+	repulse_pointer->MULTIPLICATOR = config.repulsion_multiplier;
+    repulse_pointer->MAX_RANGE = config.max_calculation_distance;
+    repulse_pointer->MIN_RANGE = config.min_calculation_distance;
+    repulse_pointer->PUBLISH_FINAL_REPULSION_ARROW = config.RVIZ_repulsion_arrow;
+    repulse_pointer->PUBLISH_VISIBLE_POINTS = config.RVIZ_calculated_points_cloud;
+    repulse_pointer->PUBLISH_VISIBILITY_CIRCLE = config.RVIZ_visibility_circle;
 
-    attract_pointer->C = config.attraction_multiplier;
-    attract_pointer->max_vector = config.max_vector;
-    attract_pointer->publish_final_attraction_arrow = config.RVIZ_attraction_arrow;
-    attract_pointer->publish_goal = config.RVIZ_goal;
+    attract_pointer->MULTIPLICATOR = config.attraction_multiplier;
+    attract_pointer->MAX_VECTOR = config.max_vector;
+    attract_pointer->PUBLISH_FINAL_ATRACTION_ARROW = config.RVIZ_attraction_arrow;
+    attract_pointer->PUBLISH_GOAL = config.RVIZ_goal;
 
     enable_attraction = config.enable_attraction;
     enable_turn_vectors_to_global = config.enable_turn_vectors_to_global;
 
-    regulator_pointer->regulator_mode = config.regulator_mode;
-    regulator_pointer->max_linear_speed = config.max_linear_speed;
-    regulator_pointer->max_angular_speed = config.max_angular_speed;
-    regulator_pointer->max_angle_to_accept_movement = config.max_angle_to_accept_movement;
+    regulator_pointer->REGULATOR_MODE = config.regulator_mode;
+    regulator_pointer->MAX_LINEAR_SPEED = config.max_linear_speed;
+    regulator_pointer->MAX_ANGULAR_SPEED = config.max_angular_speed;
+    regulator_pointer->MAX_ANGLE_TO_ACCEPT_MOVEMENT = config.max_angle_to_accept_movement;
 } 
 
-
-void got_scan_cb(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
+// Колбэк лазерскана
+void got_scan_cb(const sensor_msgs::PointCloud::ConstPtr& catched_cloud)
 {
-    repulse_pointer->calculate_repulse_vector(catchedCloud);
+    repulse_pointer->calculate_repulse_vector(catched_cloud);
     regulator_pointer->set_regulate_one_vector_sum(repulse_pointer->finvec_x, repulse_pointer->finvec_y);
     regulator_pointer->repulsion_ready = 1;
     // ЭТО БЫЛ РАССЧЕТ ОТТАЛКИВАНИЯ
@@ -942,30 +1001,32 @@ void got_scan_cb(const sensor_msgs::PointCloud::ConstPtr& catchedCloud)
     // ЭТО БЫЛ РАССЧЕТ ПРИТЯГИВАНИЯ
 }
 
-
+// Колбэк целевой точки(2d nav goal rviz)
 void got_goal_cb(const geometry_msgs::PoseStamped::ConstPtr& catched_goal)
 {
     attract_pointer->goal_x = catched_goal->pose.position.x;
     attract_pointer->goal_y = catched_goal->pose.position.y; // RETHINK
 }
 
-
+// Колбэк одометрии
 void got_odom_cb(const nav_msgs::Odometry::ConstPtr& catched_odom) // HOOK odom usage
 {
-    attract_odom_pointer->pose.pose.position.x = catched_odom->pose.pose.position.x; // LINK IN id12-031-23 get parameter
-    attract_odom_pointer->pose.pose.position.y = catched_odom->pose.pose.position.y; // LINK IN id12-031-23 get parameter 
-    attract_odom_pointer->pose.pose.orientation.w = catched_odom->pose.pose.orientation.w;
-    attract_odom_pointer->pose.pose.orientation.x = catched_odom->pose.pose.orientation.x;
-    attract_odom_pointer->pose.pose.orientation.y = catched_odom->pose.pose.orientation.y;
-    attract_odom_pointer->pose.pose.orientation.z = catched_odom->pose.pose.orientation.z; 
+    global_odom.pose.pose.position.x = catched_odom->pose.pose.position.x; // LINK IN id12-031-23 get parameter
+    global_odom.pose.pose.position.y = catched_odom->pose.pose.position.y; // LINK IN id12-031-23 get parameter 
+    global_odom.pose.pose.orientation.w = catched_odom->pose.pose.orientation.w;
+    global_odom.pose.pose.orientation.x = catched_odom->pose.pose.orientation.x;
+    global_odom.pose.pose.orientation.y = catched_odom->pose.pose.orientation.y;
+    global_odom.pose.pose.orientation.z = catched_odom->pose.pose.orientation.z; 
 } // RETHINK
 
-
+// Мэйн функция
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "potential_fields");
+    ros::NodeHandle nh;
+    nh_pointer = &nh;
 
-    PotentialFieldRepulsive repulse;
+    PotentialFieldRepulsive repulse(nh_pointer);
     PotentialFieldAttractive attract;
     SpeedRegulator2D regulator;
 
@@ -973,12 +1034,9 @@ int main(int argc, char **argv)
     regulator_pointer = &regulator;
     attract_pointer = &attract;
 
-    attract_odom_pointer = &attract.odom;
-
     // NODEHANDLE
-    ros::NodeHandle nh;
 
-    //PUB adverts
+    //PUBLISHER adverts
     catchPC_sub = nh.subscribe("/transPC", 10, got_scan_cb); // SUB catchPC sub
 
     if (enable_attraction == 1)
@@ -986,7 +1044,7 @@ int main(int argc, char **argv)
         goal_sub = nh.subscribe("/move_base_simple/goal", 1000, got_goal_cb);
     }
     
-    odom_sub = nh.subscribe("/odom", 1000, got_odom_cb); //  HOOK odom usage
+    odom_sub = nh.subscribe("/mavros/local_position/odom", 1000, got_odom_cb); //  HOOK odom usage
 
     dynamic_reconfigure::Server<apf_la::reconfigure_potential_fieldsConfig> server;
     dynamic_reconfigure::Server<apf_la::reconfigure_potential_fieldsConfig>::CallbackType f;
