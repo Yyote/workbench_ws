@@ -21,12 +21,8 @@ beginner_tutorials
 /home/leesirius/workbench_ws/devel/.private/beginner_tutorials/include/beginner_tutorials/VelocitiesScan.h /home/leesirius/workbench_ws/devel/include/beginner_tutorials/VelocitiesScan.h
 /home/leesirius/workbench_ws/devel/.private/beginner_tutorials/lib/beginner_tutorials/LidarFormattingRPLidar /home/leesirius/workbench_ws/devel/lib/beginner_tutorials/LidarFormattingRPLidar
 /home/leesirius/workbench_ws/devel/.private/beginner_tutorials/lib/beginner_tutorials/LPVCPointCloud /home/leesirius/workbench_ws/devel/lib/beginner_tutorials/LPVCPointCloud
-/home/leesirius/workbench_ws/devel/.private/beginner_tutorials/lib/beginner_tutorials/potential_fields /home/leesirius/workbench_ws/devel/lib/beginner_tutorials/potential_fields
-/home/leesirius/workbench_ws/devel/.private/beginner_tutorials/lib/beginner_tutorials/cmake.lock /home/leesirius/workbench_ws/devel/lib/beginner_tutorials/cmake.lock
-/home/leesirius/workbench_ws/devel/.private/beginner_tutorials/lib/beginner_tutorials/tf2_laser_bind_to_odom /home/leesirius/workbench_ws/devel/lib/beginner_tutorials/tf2_laser_bind_to_odom
 /home/leesirius/workbench_ws/devel/.private/beginner_tutorials/lib/beginner_tutorials/LPVelCalc /home/leesirius/workbench_ws/devel/lib/beginner_tutorials/LPVelCalc
 /home/leesirius/workbench_ws/devel/.private/beginner_tutorials/lib/beginner_tutorials/LStoPC /home/leesirius/workbench_ws/devel/lib/beginner_tutorials/LStoPC
-/home/leesirius/workbench_ws/devel/.private/beginner_tutorials/lib/beginner_tutorials/Node1.py /home/leesirius/workbench_ws/devel/lib/beginner_tutorials/Node1.py
 /home/leesirius/workbench_ws/devel/.private/beginner_tutorials/lib/pkgconfig/beginner_tutorials.pc /home/leesirius/workbench_ws/devel/lib/pkgconfig/beginner_tutorials.pc
 /home/leesirius/workbench_ws/devel/.private/beginner_tutorials/lib/python3/dist-packages/beginner_tutorials/__init__.py /home/leesirius/workbench_ws/devel/lib/python3/dist-packages/beginner_tutorials/__init__.py
 /home/leesirius/workbench_ws/devel/.private/beginner_tutorials/lib/python3/dist-packages/beginner_tutorials/msg/__init__.py /home/leesirius/workbench_ws/devel/lib/python3/dist-packages/beginner_tutorials/msg/__init__.py

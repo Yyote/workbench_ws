@@ -246,6 +246,11 @@ add_executable(tf2_laser_bind_to_odom src/tf2_laser_bind_to_odom.cpp)
 target_link_libraries(tf2_laser_bind_to_odom ${catkin_LIBRARIES})
 add_dependencies(tf2_laser_bind_to_odom apf_la_generate_messages_cpp)
 
+catkin_install_python(
+PROGRAMS
+scripts/astar.py
+DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 
 

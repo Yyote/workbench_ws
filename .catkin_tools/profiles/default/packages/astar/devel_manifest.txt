@@ -1,4 +1,4 @@
-Astar
+src/Astar
 /home/leesirius/workbench_ws/devel/.private/astar/cmake.lock /home/leesirius/workbench_ws/devel/./cmake.lock
 /home/leesirius/workbench_ws/devel/.private/astar/share/astar/cmake/astarConfig-version.cmake /home/leesirius/workbench_ws/devel/share/astar/cmake/astarConfig-version.cmake
 /home/leesirius/workbench_ws/devel/.private/astar/share/astar/cmake/astarConfig.cmake /home/leesirius/workbench_ws/devel/share/astar/cmake/astarConfig.cmake

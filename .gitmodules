@@ -20,3 +20,9 @@
 [submodule "src/Astar"]
 	path = src/Astar
 	url = https://github.com/lh9171338/Astar.git
+[submodule "turtlebot3_simulations"]
+	path = turtlebot3_simulations
+	url = https://github.com/ROBOTIS-GIT/turtlebot3_simulations
+[submodule "turtlebot3"]
+	path = turtlebot3
+	url = https://github.com/ROBOTIS-GIT/turtlebot3.git
