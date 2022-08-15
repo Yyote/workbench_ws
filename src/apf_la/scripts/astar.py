@@ -231,12 +231,12 @@ class GlobalPlanner():
         self.start_pose_grid = ()
         self.goal_pose_grid = ()
 
-        self.radius_of_robot = 0.8
+        self.radius_of_robot = 0.05 # radius of robot
         self.filter_traj_threshold = 0.5
 
         rospy.Subscriber("/map", OccupancyGrid, self.map_clb, queue_size=10)
         rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.robot_pose_clb, queue_size=10)  # odometry in PoseStamped # CODEINFO odometry
-        rospy.Subscriber("/goal_point", PoseStamped, self.goal_pose_clb, queue_size=10)
+        rospy.Subscriber("/move_base_simple/goal", PoseStamped, self.goal_pose_clb, queue_size=10)
 
         self.send_trajectory_pub = rospy.Publisher("/astar/trajectory", GlobalTrajectory,  queue_size=10)
         self.marker_path_pub = rospy.Publisher("/astar/viz/global_path", Marker, queue_size=10)
