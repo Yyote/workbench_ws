@@ -1,6 +1,7 @@
 apf_la
 /home/leesirius/workbench_ws/devel/.private/apf_la/cmake.lock /home/leesirius/workbench_ws/devel/./cmake.lock
 /home/leesirius/workbench_ws/devel/.private/apf_la/share/gennodejs/ros/apf_la/_index.js /home/leesirius/workbench_ws/devel/share/gennodejs/ros/apf_la/_index.js
+/home/leesirius/workbench_ws/devel/.private/apf_la/share/gennodejs/ros/apf_la/msg/GlobalTrajectory.js /home/leesirius/workbench_ws/devel/share/gennodejs/ros/apf_la/msg/GlobalTrajectory.js
 /home/leesirius/workbench_ws/devel/.private/apf_la/share/gennodejs/ros/apf_la/msg/VelocitiesScan.js /home/leesirius/workbench_ws/devel/share/gennodejs/ros/apf_la/msg/VelocitiesScan.js
 /home/leesirius/workbench_ws/devel/.private/apf_la/share/gennodejs/ros/apf_la/msg/VelocitiesPC.js /home/leesirius/workbench_ws/devel/share/gennodejs/ros/apf_la/msg/VelocitiesPC.js
 /home/leesirius/workbench_ws/devel/.private/apf_la/share/gennodejs/ros/apf_la/msg/_index.js /home/leesirius/workbench_ws/devel/share/gennodejs/ros/apf_la/msg/_index.js
@@ -8,7 +9,9 @@ apf_la
 /home/leesirius/workbench_ws/devel/.private/apf_la/share/common-lisp/ros/apf_la/msg/_package_VelocitiesPC.lisp /home/leesirius/workbench_ws/devel/share/common-lisp/ros/apf_la/msg/_package_VelocitiesPC.lisp
 /home/leesirius/workbench_ws/devel/.private/apf_la/share/common-lisp/ros/apf_la/msg/VelocitiesScan.lisp /home/leesirius/workbench_ws/devel/share/common-lisp/ros/apf_la/msg/VelocitiesScan.lisp
 /home/leesirius/workbench_ws/devel/.private/apf_la/share/common-lisp/ros/apf_la/msg/VelocitiesPC.lisp /home/leesirius/workbench_ws/devel/share/common-lisp/ros/apf_la/msg/VelocitiesPC.lisp
+/home/leesirius/workbench_ws/devel/.private/apf_la/share/common-lisp/ros/apf_la/msg/_package_GlobalTrajectory.lisp /home/leesirius/workbench_ws/devel/share/common-lisp/ros/apf_la/msg/_package_GlobalTrajectory.lisp
 /home/leesirius/workbench_ws/devel/.private/apf_la/share/common-lisp/ros/apf_la/msg/_package.lisp /home/leesirius/workbench_ws/devel/share/common-lisp/ros/apf_la/msg/_package.lisp
+/home/leesirius/workbench_ws/devel/.private/apf_la/share/common-lisp/ros/apf_la/msg/GlobalTrajectory.lisp /home/leesirius/workbench_ws/devel/share/common-lisp/ros/apf_la/msg/GlobalTrajectory.lisp
 /home/leesirius/workbench_ws/devel/.private/apf_la/share/common-lisp/ros/apf_la/msg/_package_VelocitiesScan.lisp /home/leesirius/workbench_ws/devel/share/common-lisp/ros/apf_la/msg/_package_VelocitiesScan.lisp
 /home/leesirius/workbench_ws/devel/.private/apf_la/share/apf_la/docs/reconfigure_potential_fieldsConfig.dox /home/leesirius/workbench_ws/devel/share/apf_la/docs/reconfigure_potential_fieldsConfig.dox
 /home/leesirius/workbench_ws/devel/.private/apf_la/share/apf_la/docs/reconfigure_potential_fieldsConfig-usage.dox /home/leesirius/workbench_ws/devel/share/apf_la/docs/reconfigure_potential_fieldsConfig-usage.dox
@@ -20,9 +23,11 @@ apf_la
 /home/leesirius/workbench_ws/devel/.private/apf_la/share/roseus/ros/apf_la/manifest.l /home/leesirius/workbench_ws/devel/share/roseus/ros/apf_la/manifest.l
 /home/leesirius/workbench_ws/devel/.private/apf_la/share/roseus/ros/apf_la/msg/VelocitiesScan.l /home/leesirius/workbench_ws/devel/share/roseus/ros/apf_la/msg/VelocitiesScan.l
 /home/leesirius/workbench_ws/devel/.private/apf_la/share/roseus/ros/apf_la/msg/VelocitiesPC.l /home/leesirius/workbench_ws/devel/share/roseus/ros/apf_la/msg/VelocitiesPC.l
+/home/leesirius/workbench_ws/devel/.private/apf_la/share/roseus/ros/apf_la/msg/GlobalTrajectory.l /home/leesirius/workbench_ws/devel/share/roseus/ros/apf_la/msg/GlobalTrajectory.l
 /home/leesirius/workbench_ws/devel/.private/apf_la/include/apf_la/VelocitiesPC.h /home/leesirius/workbench_ws/devel/include/apf_la/VelocitiesPC.h
 /home/leesirius/workbench_ws/devel/.private/apf_la/include/apf_la/VelocitiesScan.h /home/leesirius/workbench_ws/devel/include/apf_la/VelocitiesScan.h
 /home/leesirius/workbench_ws/devel/.private/apf_la/include/apf_la/reconfigure_potential_fieldsConfig.h /home/leesirius/workbench_ws/devel/include/apf_la/reconfigure_potential_fieldsConfig.h
+/home/leesirius/workbench_ws/devel/.private/apf_la/include/apf_la/GlobalTrajectory.h /home/leesirius/workbench_ws/devel/include/apf_la/GlobalTrajectory.h
 /home/leesirius/workbench_ws/devel/.private/apf_la/lib/apf_la/astar.py /home/leesirius/workbench_ws/devel/lib/apf_la/astar.py
 /home/leesirius/workbench_ws/devel/.private/apf_la/lib/apf_la/LidarFormattingRPLidar /home/leesirius/workbench_ws/devel/lib/apf_la/LidarFormattingRPLidar
 /home/leesirius/workbench_ws/devel/.private/apf_la/lib/apf_la/potential_fields /home/leesirius/workbench_ws/devel/lib/apf_la/potential_fields
@@ -33,6 +38,7 @@ apf_la
 /home/leesirius/workbench_ws/devel/.private/apf_la/lib/pkgconfig/apf_la.pc /home/leesirius/workbench_ws/devel/lib/pkgconfig/apf_la.pc
 /home/leesirius/workbench_ws/devel/.private/apf_la/lib/python3/dist-packages/apf_la/__init__.py /home/leesirius/workbench_ws/devel/lib/python3/dist-packages/apf_la/__init__.py
 /home/leesirius/workbench_ws/devel/.private/apf_la/lib/python3/dist-packages/apf_la/msg/__init__.py /home/leesirius/workbench_ws/devel/lib/python3/dist-packages/apf_la/msg/__init__.py
+/home/leesirius/workbench_ws/devel/.private/apf_la/lib/python3/dist-packages/apf_la/msg/_GlobalTrajectory.py /home/leesirius/workbench_ws/devel/lib/python3/dist-packages/apf_la/msg/_GlobalTrajectory.py
 /home/leesirius/workbench_ws/devel/.private/apf_la/lib/python3/dist-packages/apf_la/msg/_VelocitiesPC.py /home/leesirius/workbench_ws/devel/lib/python3/dist-packages/apf_la/msg/_VelocitiesPC.py
 /home/leesirius/workbench_ws/devel/.private/apf_la/lib/python3/dist-packages/apf_la/msg/_VelocitiesScan.py /home/leesirius/workbench_ws/devel/lib/python3/dist-packages/apf_la/msg/_VelocitiesScan.py
 /home/leesirius/workbench_ws/devel/.private/apf_la/lib/python3/dist-packages/apf_la/cfg/__init__.py /home/leesirius/workbench_ws/devel/lib/python3/dist-packages/apf_la/cfg/__init__.py

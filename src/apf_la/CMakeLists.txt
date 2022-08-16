@@ -57,6 +57,7 @@ add_message_files(
   FILES
   VelocitiesScan.msg
   VelocitiesPC.msg
+  GlobalTrajectory.msg
 )
 
 ## Generate services in the 'srv' folder
