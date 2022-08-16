@@ -15,12 +15,18 @@ void astar_cb(const apf_la::GlobalTrajectory::ConstPtr& trajectory)
     }
 }
 
+void odom_cb(const nav_msgs::Odometry::ConstPtr& odom)
+{
+    
+}
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "astar_point_stacker");
     ros::NodeHandle n;
 
     ros::Subscriber sub = n.subscribe<>("/astar/trajectory", 1000, astar_cb);
+    ros::Subscriber sub = n.subscribe<>("/odom", 1000, odom_cb);
     ros::Publisher pub = n.advertise<geometry_msgs::PoseStamped>("/point_stacker/actual_goal", 1000);
 
     ros::spin();
