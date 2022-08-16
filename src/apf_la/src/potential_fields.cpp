@@ -30,7 +30,6 @@
 // PRESETUP
 bool enable_turn_vectors_to_global = 1;
 bool enable_attraction = 1;
-int okcheck = 1;
 nav_msgs::Odometry global_odom;
 
 ros::Subscriber goal_sub;
@@ -272,7 +271,7 @@ class EulerAngles {
     }
 
     // Функция для передачи Эйлеровых углов в вектор вращения
-    void setRPY_of_quaternion(tf2::Quaternion q)
+    void setRPY_of_quaternion(tf2::Quaternion &q)
     {
         q.setRPY(roll, pitch, yaw);
     }
@@ -562,7 +561,7 @@ class   PotentialFieldAttractive
     MarkerHandler goal;
 
     float MAX_VECTOR;
-    bool PUBLISH_FINAL_ATRACTION_ARROW;
+    bool PUBLISH_FINAL_ATTRACTION_ARROW;
     bool PUBLISH_GOAL;
     // IDEA min_vector, goal_accomplished_range;
 
@@ -576,7 +575,7 @@ class   PotentialFieldAttractive
         finvec_x = 0;
         finvec_y = 0;
         
-        PUBLISH_FINAL_ATRACTION_ARROW = 1;
+        PUBLISH_FINAL_ATTRACTION_ARROW = 1;
         PUBLISH_GOAL = 1;
         
         final_attraction_arrow._init(nh_pointer, "/potential_field_attraction_marker");
@@ -607,6 +606,8 @@ class   PotentialFieldAttractive
         tf2::Quaternion qodom;
         tf2::fromMsg(global_odom.pose.pose.orientation, qodom);
         angles.get_RPY_from_quaternion(qodom);
+        // tf2::Matrix3x3 m(qodom);
+        // m.getRPY(angles.roll, angles.pitch, angles.yaw);
 
         angles.yaw = -angles.yaw;
 
@@ -684,7 +685,7 @@ ROS_WARN_STREAM(std::endl << "angle is" << angles.yaw << std::endl);
         final_attraction_arrow.set_color(1.0, 1.0, 1.0, 0.0);
         // final_attraction_arrow.debug_info("Arrow");
 
-        if(PUBLISH_FINAL_ATRACTION_ARROW == 1)
+        if(PUBLISH_FINAL_ATTRACTION_ARROW == 1)
         {
             final_attraction_arrow.publish_marker(); // PUBLISHER //RVIZ publish
         }
@@ -972,7 +973,7 @@ void dynamic_reconfigure_callback(apf_la::reconfigure_potential_fieldsConfig &co
 
     attract_pointer->MULTIPLICATOR = config.attraction_multiplier;
     attract_pointer->MAX_VECTOR = config.max_vector;
-    attract_pointer->PUBLISH_FINAL_ATRACTION_ARROW = config.RVIZ_attraction_arrow;
+    attract_pointer->PUBLISH_FINAL_ATTRACTION_ARROW = config.RVIZ_attraction_arrow;
     attract_pointer->PUBLISH_GOAL = config.RVIZ_goal;
 
     enable_attraction = config.enable_attraction;
@@ -1044,7 +1045,7 @@ int main(int argc, char **argv)
         goal_sub = nh.subscribe("/move_base_simple/goal", 1000, got_goal_cb);
     }
     
-    odom_sub = nh.subscribe("/mavros/local_position/odom", 1000, got_odom_cb); //  HOOK odom usage
+    odom_sub = nh.subscribe("/odom", 1000, got_odom_cb); //  HOOK odom usage
 
     dynamic_reconfigure::Server<apf_la::reconfigure_potential_fieldsConfig> server;
     dynamic_reconfigure::Server<apf_la::reconfigure_potential_fieldsConfig>::CallbackType f;
