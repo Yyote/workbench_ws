@@ -1,6 +1,5 @@
 apf_la
 /home/leesirius/workbench_ws/devel/.private/apf_la/cmake.lock /home/leesirius/workbench_ws/devel/./cmake.lock
-/home/leesirius/workbench_ws/devel/.private/apf_la/share/apf_LA/cmake/apf_LA-msg-paths.cmake /home/leesirius/workbench_ws/devel/share/apf_LA/cmake/apf_LA-msg-paths.cmake
 /home/leesirius/workbench_ws/devel/.private/apf_la/share/gennodejs/ros/apf_la/_index.js /home/leesirius/workbench_ws/devel/share/gennodejs/ros/apf_la/_index.js
 /home/leesirius/workbench_ws/devel/.private/apf_la/share/gennodejs/ros/apf_la/msg/VelocitiesScan.js /home/leesirius/workbench_ws/devel/share/gennodejs/ros/apf_la/msg/VelocitiesScan.js
 /home/leesirius/workbench_ws/devel/.private/apf_la/share/gennodejs/ros/apf_la/msg/VelocitiesPC.js /home/leesirius/workbench_ws/devel/share/gennodejs/ros/apf_la/msg/VelocitiesPC.js
@@ -24,12 +23,14 @@ apf_la
 /home/leesirius/workbench_ws/devel/.private/apf_la/include/apf_la/VelocitiesPC.h /home/leesirius/workbench_ws/devel/include/apf_la/VelocitiesPC.h
 /home/leesirius/workbench_ws/devel/.private/apf_la/include/apf_la/VelocitiesScan.h /home/leesirius/workbench_ws/devel/include/apf_la/VelocitiesScan.h
 /home/leesirius/workbench_ws/devel/.private/apf_la/include/apf_la/reconfigure_potential_fieldsConfig.h /home/leesirius/workbench_ws/devel/include/apf_la/reconfigure_potential_fieldsConfig.h
+/home/leesirius/workbench_ws/devel/.private/apf_la/lib/apf_la/astar.py /home/leesirius/workbench_ws/devel/lib/apf_la/astar.py
 /home/leesirius/workbench_ws/devel/.private/apf_la/lib/apf_la/LidarFormattingRPLidar /home/leesirius/workbench_ws/devel/lib/apf_la/LidarFormattingRPLidar
 /home/leesirius/workbench_ws/devel/.private/apf_la/lib/apf_la/potential_fields /home/leesirius/workbench_ws/devel/lib/apf_la/potential_fields
+/home/leesirius/workbench_ws/devel/.private/apf_la/lib/apf_la/cmake.lock /home/leesirius/workbench_ws/devel/lib/apf_la/cmake.lock
 /home/leesirius/workbench_ws/devel/.private/apf_la/lib/apf_la/tf2_laser_bind_to_odom /home/leesirius/workbench_ws/devel/lib/apf_la/tf2_laser_bind_to_odom
+/home/leesirius/workbench_ws/devel/.private/apf_la/lib/apf_la/odom_to_PoseStamped /home/leesirius/workbench_ws/devel/lib/apf_la/odom_to_PoseStamped
 /home/leesirius/workbench_ws/devel/.private/apf_la/lib/apf_la/LStoPC /home/leesirius/workbench_ws/devel/lib/apf_la/LStoPC
 /home/leesirius/workbench_ws/devel/.private/apf_la/lib/pkgconfig/apf_la.pc /home/leesirius/workbench_ws/devel/lib/pkgconfig/apf_la.pc
-/home/leesirius/workbench_ws/devel/.private/apf_la/lib/python3/dist-packages/apf_LA/__init__.py /home/leesirius/workbench_ws/devel/lib/python3/dist-packages/apf_LA/__init__.py
 /home/leesirius/workbench_ws/devel/.private/apf_la/lib/python3/dist-packages/apf_la/__init__.py /home/leesirius/workbench_ws/devel/lib/python3/dist-packages/apf_la/__init__.py
 /home/leesirius/workbench_ws/devel/.private/apf_la/lib/python3/dist-packages/apf_la/msg/__init__.py /home/leesirius/workbench_ws/devel/lib/python3/dist-packages/apf_la/msg/__init__.py
 /home/leesirius/workbench_ws/devel/.private/apf_la/lib/python3/dist-packages/apf_la/msg/_VelocitiesPC.py /home/leesirius/workbench_ws/devel/lib/python3/dist-packages/apf_la/msg/_VelocitiesPC.py
