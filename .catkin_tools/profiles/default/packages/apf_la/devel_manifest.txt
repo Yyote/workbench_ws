@@ -32,6 +32,7 @@ apf_la
 /home/leesirius/workbench_ws/devel/.private/apf_la/lib/apf_la/LidarFormattingRPLidar /home/leesirius/workbench_ws/devel/lib/apf_la/LidarFormattingRPLidar
 /home/leesirius/workbench_ws/devel/.private/apf_la/lib/apf_la/potential_fields /home/leesirius/workbench_ws/devel/lib/apf_la/potential_fields
 /home/leesirius/workbench_ws/devel/.private/apf_la/lib/apf_la/cmake.lock /home/leesirius/workbench_ws/devel/lib/apf_la/cmake.lock
+/home/leesirius/workbench_ws/devel/.private/apf_la/lib/apf_la/astar_point_stacker /home/leesirius/workbench_ws/devel/lib/apf_la/astar_point_stacker
 /home/leesirius/workbench_ws/devel/.private/apf_la/lib/apf_la/tf2_laser_bind_to_odom /home/leesirius/workbench_ws/devel/lib/apf_la/tf2_laser_bind_to_odom
 /home/leesirius/workbench_ws/devel/.private/apf_la/lib/apf_la/odom_to_PoseStamped /home/leesirius/workbench_ws/devel/lib/apf_la/odom_to_PoseStamped
 /home/leesirius/workbench_ws/devel/.private/apf_la/lib/apf_la/LStoPC /home/leesirius/workbench_ws/devel/lib/apf_la/LStoPC
