@@ -230,9 +230,9 @@ include_directories(
 
 # NODES
 
-add_executable(LidarFormattingRPLidar src/LidarFormattingRPLidar.cpp)
-target_link_libraries(LidarFormattingRPLidar ${catkin_LIBRARIES})
-add_dependencies(LidarFormattingRPLidar apf_la_generate_messages_cpp)
+# add_executable(LidarFormattingRPLidar src/LidarFormattingRPLidar.cpp)
+# target_link_libraries(LidarFormattingRPLidar ${catkin_LIBRARIES})
+# add_dependencies(LidarFormattingRPLidar apf_la_generate_messages_cpp)
 
 add_executable(LStoPC src/LStoPC.cpp)
 target_link_libraries(LStoPC ${catkin_LIBRARIES})
