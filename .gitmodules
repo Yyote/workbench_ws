@@ -23,3 +23,6 @@
 [submodule "src/Astar"]
 	path = src/Astar
 	url = https://github.com/lh9171338/Astar.git
+[submodule "src/apf_la"]
+	path = src/apf_la
+	url = https://github.com/Yyote/apf_la.git
