@@ -26,3 +26,6 @@
 [submodule "src/turtlebot3_simulations"]
 	path = src/turtlebot3_simulations
 	url = https://github.com/ROBOTIS-GIT/turtlebot3_simulations.git
+[submodule "src/apf_la"]
+	path = src/apf_la
+	url = https://github.com/Yyote/apf_la.git
