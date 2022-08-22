@@ -2,4 +2,4 @@
 
 Paste:
 
-> git clone \<url\> --recursive
+> git clone https://github.com/Yyote/workbench_ws.git --recursive
